@@ -18,9 +18,10 @@ export function generateStaticParams() {
   return allSlugs().map((slug) => ({ slug }));
 }
 
-export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   try {
-    const s = getStory(params.slug);
+    const { slug } = await params;
+    const s = getStory(slug);
     return {
       title: `${s.meta.startup_name} · NBT Breakdown`,
       description: s.hero.subheadline,
@@ -30,10 +31,11 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
   }
 }
 
-export default function BreakdownPage({ params }: { params: { slug: string } }) {
+export default async function BreakdownPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
   let story;
   try {
-    story = getStory(params.slug);
+    story = getStory(slug);
   } catch {
     notFound();
   }
