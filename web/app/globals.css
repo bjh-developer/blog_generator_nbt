@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Font loaded via next/font/google in layout.tsx (--font-atkinson CSS var). */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: #fff4de;
+  color: #352757;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+::selection {
+  background: #88e5f6;
+}

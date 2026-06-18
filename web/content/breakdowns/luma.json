@@ -1,0 +1,99 @@
+{
+  "meta": {
+    "startup_name": "Luma",
+    "slug": "luma",
+    "volume": "Vol. 01",
+    "category_tag": "Community Infrastructure",
+    "research_date": "2026-06-14"
+  },
+  "hero": {
+    "line1": "Luma didn't build an event platform.",
+    "line2": "They built infrastructure for identities.",
+    "accent_word_orange": "infrastructure",
+    "accent_word_purple": "identities",
+    "subheadline": "How a calendar tool became the OS for startup communities — and why that distinction is worth a billion dollars.",
+    "stat_bar": [
+      { "value": "5M+", "label": "Monthly Attendees" },
+      { "value": "300K", "label": "Active Hosts" },
+      { "value": "150+", "label": "Countries" },
+      { "value": "$30M", "label": "Raised" }
+    ]
+  },
+  "core_insight": {
+    "title": "Core Insight",
+    "statement": "People attend events only if it gives them a sense of belonging.",
+    "narrative": "Eventbrite solved logistics. Partiful solved social coordination. Luma solved something deeper: the signal problem. In a world drowning with events, a Luma invite became a proxy for quality. The platform didn't manage RSVPs — it curated belonging.",
+    "icon": "Lightbulb"
+  },
+  "timeline": {
+    "title": "How a weekend project became the backbone of startup culture.",
+    "events": [
+      { "year": "2020", "kind": "founder_story", "heading": "The itch they had to scratch", "body": "Co-founders Danqing Liu and Victor Pontis wanted to help a friend host yoga classes online, but the existing tools were too clunky. So they built a sleek platform to manage Zoom invites." },
+      { "year": "2020", "kind": "product", "heading": "MVP: a beautiful RSVP page", "body": "A simple, elegant landing-page builder with seamless Zoom integration — RSVPs, payments, and automated reminders." },
+      { "year": "2020", "kind": "funding", "heading": "Seed round: $3M", "body": "Luma raised $3M, framed around helping businesses build on Zoom-era event workflows." },
+      { "year": "2023", "kind": "inflection", "heading": "Capturing recurring communities", "body": "Memberships, subscription tiers, member-only events and newsletters — a push toward recurring community infrastructure." },
+      { "year": "2026", "kind": "user_delight", "heading": "Discovery, waitlists and moderation", "body": "Better discovery, search, notifications, paid-event waitlists, and block/report tools — a full event ecosystem." }
+    ]
+  },
+  "product_loop": {
+    "title": "The product loop",
+    "nodes": [
+      { "label": "Host creates event", "sub": "Beautiful page signals quality" },
+      { "label": "Guests discover", "sub": "Via network + SEO" },
+      { "label": "Community forms", "sub": "Follows, recurring series" },
+      { "label": "New hosts emerge", "sub": "Attendees become organizers" }
+    ],
+    "center_label": "NETWORK EFFECT",
+    "caption": "This isn't a feature loop — it's a trust-compounding engine. Each revolution adds more signal, more density, and more reasons for the next host to choose Luma."
+  },
+  "funding": {
+    "title": "Raising less, doing more",
+    "narrative": "Luma's capital strategy is deliberately lean. Free for free events; ~2–3% plus a small flat fee on paid tickets. You only pay when you earn — which self-selects for serious, recurring hosts.",
+    "rounds": [
+      { "label": "Seed", "date": "2020", "amount": "$3M", "valuation": null, "signal": "Bet on Zoom-era event workflows." },
+      { "label": "Series A", "date": "2023", "amount": "$30M", "valuation": null, "signal": "Funding the shift from tool to community OS." }
+    ],
+    "chart": [
+      { "label": "2020 Seed", "value": 3, "unit": "$M", "date": "2020" },
+      { "label": "2023 Series A", "value": 30, "unit": "$M", "date": "2023" }
+    ],
+    "pricing_note": "Free tier = zero friction to start. By the time you're charging tickets, your community already knows Luma — so the fee feels tiny against the credibility and infrastructure."
+  },
+  "competitors": {
+    "title": "A crowded room with one clear winner",
+    "framing": "Mapped on design quality (Y) vs community depth (X), only one platform nails both.",
+    "axis_x": "Community depth",
+    "axis_y": "Design quality",
+    "quadrants": [
+      { "name": "Luma", "their_bet": "Editorial design + community infra", "the_gap": "Owns the top-right alone", "quadrant": "tr", "winner": true },
+      { "name": "Partiful", "their_bet": "Beautiful personal social events", "the_gap": "Not built for professional communities", "quadrant": "tl", "winner": false },
+      { "name": "Meetup", "their_bet": "Network + communities", "the_gap": "Product stuck in 2012 aesthetics", "quadrant": "br", "winner": false },
+      { "name": "Eventbrite", "their_bet": "Pure volume play", "the_gap": "Massive scale, zero community", "quadrant": "bl", "winner": false }
+    ]
+  },
+  "founder_mode": {
+    "title": "How they're organized internally",
+    "narrative": "6 people. Millions of users. No silos: designers do product + graphic, engineers code across web, iOS, Android, and API. Only two recurring meetings. Everything goes into the product.",
+    "facts": [
+      { "label": "People", "value": "6" },
+      { "label": "Engineers", "value": "3" },
+      { "label": "Designers", "value": "3" }
+    ]
+  },
+  "lessons": [
+    { "number": 1, "headline": "\"Solve the host first. The audience follows.\"", "body": "Two-sided markets fail when they grow both sides at once. Go deep on one side and let the other materialize naturally.", "applicable_to": "Marketplace founders" },
+    { "number": 2, "headline": "\"Recurring communities compound. One-off needs don't.\"", "body": "Build for recurring behaviours, not one-time needs. Design the recurrence into the default experience.", "applicable_to": "Community builders" },
+    { "number": 3, "headline": "\"Design is a filter, not just a feature.\"", "body": "High-quality design self-selects for high-quality users. You're communicating who this is for — and attracting exactly them.", "applicable_to": "Product-led teams" }
+  ],
+  "closing": {
+    "title": "The NBT take",
+    "narrative": "Luma succeeded not because they built better event software, but because they leveraged a simple truth: in a networked world, participation is currency. They became the ledger — a very different, much more defensible business.",
+    "pull_quote": "The best startups don't just solve problems. They build psychological comfort and ways for users to create and share value.",
+    "attribution": "Next Big Thing"
+  },
+  "sources": [
+    { "title": "Luma raises Series A", "outlet": "crunchbase.com", "url": "https://news.crunchbase.com/" },
+    { "title": "Inside Luma's community OS", "outlet": "lu.ma", "url": "https://lu.ma/" }
+  ],
+  "overall_confidence": 0.82
+}
