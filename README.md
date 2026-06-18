@@ -61,6 +61,6 @@ source; low-confidence items are badged.
 
 ## Design
 
-Brand palette (mixed, not pure purple) + Bernoru/Atkinson fonts + lucide icons +
+Brand palette (mixed, not pure purple) + Atkinson fonts + lucide icons +
 recharts area charts. Section template, order, and color rotation in
 `web/lib/theme.ts`. Reference design + decisions: `docs/superpowers/specs/`.
