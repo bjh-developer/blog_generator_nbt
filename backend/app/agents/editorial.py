@@ -86,14 +86,34 @@ def stat_bar(rd: ResearchDoc) -> List[StatItem]:
     return out
 
 
-def timeline_items(rd: ResearchDoc) -> List[TimelineItem]:
-    items: List[TimelineItem] = []
+# which moments define the success/failure storyline (lower = more important)
+_TIMELINE_PRIORITY = {
+    "inflection": 0,        # pivots, near-deaths, breakthroughs
+    "founder_story": 1,     # origin, the bet
+    "funding": 2,           # money milestones
+    "product": 3,           # routine shipping
+    "user_delight": 4,
+}
+_TIMELINE_MAX = 6
+
+
+def timeline_items(rd: ResearchDoc, max_items: int = _TIMELINE_MAX) -> List[TimelineItem]:
+    # Deterministic fallback when the LLM emits no timeline_events: dedupe, keep
+    # the most storyline-defining kinds up to a cap, then order chronologically.
+    seen: set = set()
+    uniq: list = []
     for e in rd.timeline + rd.product_evolution:
         year = (e.date or "")[:4]
-        items.append(TimelineItem(year=year, kind=e.kind, heading=e.event,
-                                  body=e.significance))
-    items.sort(key=lambda it: it.year or "")
-    return items
+        key = (year, e.event.strip().lower()[:60])
+        if key in seen:
+            continue
+        seen.add(key)
+        uniq.append((e, year))
+    uniq.sort(key=lambda ey: _TIMELINE_PRIORITY.get(ey[0].kind, 5))
+    top = uniq[:max_items]
+    top.sort(key=lambda ey: ey[1] or "")
+    return [TimelineItem(year=y, kind=e.kind, heading=e.event, body=e.significance)
+            for e, y in top]
 
 
 def funding_rounds(rd: ResearchDoc) -> List[FundingRoundView]:
@@ -152,6 +172,13 @@ def clean_funding(funding: list) -> list:
 
 # --- LLM narrative contract ------------------------------------------------
 
+class _TimelineN(LenientModel):
+    year: str = ""
+    kind: str = "product"
+    heading: str
+    body: str = ""
+
+
 class _Quadrant(LenientModel):
     name: str
     their_bet: str = ""
@@ -207,6 +234,9 @@ class _Narratives(LenientModel):
         if isinstance(d.get("loop_nodes"), list):
             d["loop_nodes"] = [x for x in d["loop_nodes"]
                                if not isinstance(x, str) or x.strip()]
+        if isinstance(d.get("timeline_events"), list):
+            d["timeline_events"] = [x for x in d["timeline_events"]
+                                    if not isinstance(x, dict) or x.get("heading")]
         return d
 
     volume: str = "Vol. 01"
@@ -220,6 +250,7 @@ class _Narratives(LenientModel):
     core_insight_statement: Optional[str] = None
     core_insight_narrative: str = ""
     timeline_title: str = "The founder's journey"
+    timeline_events: List[_TimelineN] = Field(default_factory=list)
     loop_title: Optional[str] = None
     loop_nodes: List[str] = Field(default_factory=list)
     loop_center: str = "NETWORK EFFECT"
@@ -254,6 +285,10 @@ _SYS = (
     "- NEVER invent stats, names, or quotes not in the research. If unsupported, leave "
     "the field empty/null.\n"
     "- lesson headlines must be specific to THIS company, contrarian or surprising.\n"
+    "- timeline_events: choose 4-6 KEY moments from the research that define the "
+    "success/failure storyline. Each heading <= 6 words; body one sentence. Assign "
+    "a varied kind (founder_story/product/funding/inflection/user_delight) — do NOT "
+    "tag everything the same. Order chronologically by year.\n"
     "- loop_nodes: exactly 4 short phrases describing the company's growth loop.\n"
     "- competitors: EXACTLY 4 quadrants — the subject company plus 3 rivals. Place "
     "exactly ONE per cell (tr/tl/br/bl); never two in the same cell. The subject "
@@ -264,7 +299,8 @@ _SYS = (
     '{"volume":"Vol. 01","category_tag":"","hero_line1":"","hero_line2":"",'
     '"accent_word_orange":"","accent_word_purple":"","subheadline":"",'
     '"core_insight_title":"","core_insight_statement":"","core_insight_narrative":"",'
-    '"timeline_title":"","loop_title":"","loop_nodes":["","","",""],"loop_center":"NETWORK EFFECT",'
+    '"timeline_title":"","timeline_events":[{"year":"","kind":"product","heading":"","body":""}],'
+    '"loop_title":"","loop_nodes":["","","",""],"loop_center":"NETWORK EFFECT",'
     '"loop_caption":"","funding_title":"","funding_narrative":"","pricing_note":"",'
     '"competitor_title":"","competitor_framing":"","axis_x":"","axis_y":"",'
     '"quadrants":[{"name":"","their_bet":"","the_gap":"","quadrant":"tr","winner":true}],'
@@ -333,7 +369,14 @@ def assemble(rd: ResearchDoc, nar: _Narratives, sources: List[Source],
                            statement=nar.core_insight_statement,
                            narrative=nar.core_insight_narrative)
 
-    tl_items = timeline_items(rd)
+    _VALID_KINDS = ("founder_story", "product", "funding", "inflection", "user_delight")
+    if nar.timeline_events:
+        tl_items = [TimelineItem(
+            year=t.year,
+            kind=(t.kind if t.kind in _VALID_KINDS else "product"),
+            heading=t.heading, body=t.body) for t in nar.timeline_events if t.heading]
+    else:
+        tl_items = timeline_items(rd)        # deterministic fallback
     timeline = TimelineSection(title=nar.timeline_title, events=tl_items) if tl_items else None
 
     loop = None
