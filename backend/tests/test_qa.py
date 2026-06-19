@@ -148,6 +148,30 @@ def test_repair_enforces_single_winner():
     assert qa.split(qa.audit(sb))[0] == []
 
 
+def test_repair_forces_winner_into_tr():
+    sb = _brief(competitors=_comp([
+        QuadrantItem(name="Carousell", quadrant="br", winner=True),
+        QuadrantItem(name="eBay", quadrant="tl"),
+    ]))
+    sb = qa.repair(sb)
+    winner = next(q for q in sb.competitors.quadrants if q.winner)
+    assert winner.quadrant == "tr"
+
+
+def test_repair_reassigns_colliding_cells_to_unique():
+    # the Carousell bug: eBay + forums both in tl
+    sb = _brief(competitors=_comp([
+        QuadrantItem(name="Carousell", quadrant="br", winner=True),
+        QuadrantItem(name="eBay", quadrant="tl"),
+        QuadrantItem(name="Forums", quadrant="tl"),
+        QuadrantItem(name="Facebook Marketplace", quadrant="bl"),
+    ]))
+    sb = qa.repair(sb)
+    cells = [q.quadrant for q in sb.competitors.quadrants]
+    assert len(set(cells)) == len(cells)           # all unique cells
+    assert qa.split(qa.audit(sb))[0] == []         # no errors remain
+
+
 def test_repair_drops_duplicate_competitor():
     sb = _brief(competitors=_comp([
         QuadrantItem(name="Shopee", quadrant="tr", winner=True),

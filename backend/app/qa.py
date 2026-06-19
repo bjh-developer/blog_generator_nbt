@@ -108,6 +108,7 @@ def _repair_competitors(sb: StoryBrief) -> None:
         seen.add(k)
         kept.append(q)
     c.quadrants = kept
+
     # enforce exactly one winner
     winners = [q for q in c.quadrants if q.winner]
     if c.quadrants and not winners:
@@ -115,6 +116,22 @@ def _repair_competitors(sb: StoryBrief) -> None:
     elif len(winners) > 1:
         for q in winners[1:]:
             q.winner = False
+
+    # winner always occupies top-right; everyone else gets a unique remaining cell
+    order = ["tr", "tl", "br", "bl"]
+    used: set = set()
+    for q in c.quadrants:
+        if q.winner:
+            q.quadrant = "tr"
+            used.add("tr")
+    for q in c.quadrants:
+        if q.winner:
+            continue
+        if q.quadrant not in order or q.quadrant in used:
+            free = next((cell for cell in order if cell not in used), None)
+            if free:
+                q.quadrant = free
+        used.add(q.quadrant)
 
 
 def _repair_timeline(sb: StoryBrief) -> None:
