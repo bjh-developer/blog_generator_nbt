@@ -11,7 +11,7 @@ company name ─▶ backend pipeline ─▶ web/content/breakdowns/<slug>.json �
 - **backend/** — Python pipeline: Firecrawl research → fact extraction → verify →
   editorial → JSON. FastAPI server triggers it.
 - **web/** — Next.js blog that statically renders each JSON into a page.
-- **[TECHNICAL_DOCUMENTATION.md](TECHNICAL_DOCUMENTATION.md)** — how it works inside; `docs/` has specs & plans.
+- **[TECHNICAL_DOCUMENTATION.md](TECHNICAL_DOCUMENTATION.md)** — how it works inside
 
 ---
 
