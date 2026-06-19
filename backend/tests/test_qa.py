@@ -148,6 +148,36 @@ def test_repair_enforces_single_winner():
     assert qa.split(qa.audit(sb))[0] == []
 
 
+def test_repair_caps_competitors_to_four():
+    sb = _brief(competitors=_comp([
+        QuadrantItem(name="A", quadrant="tl"),
+        QuadrantItem(name="B", quadrant="bl"),
+        QuadrantItem(name="C", quadrant="br"),
+        QuadrantItem(name="D", quadrant="tl"),
+        QuadrantItem(name="Winner", quadrant="br", winner=True),
+    ]))
+    sb = qa.repair(sb)
+    quads = sb.competitors.quadrants
+    assert len(quads) == 4
+    assert any(q.winner and q.name == "Winner" for q in quads)   # winner survived the cap
+    cells = [q.quadrant for q in quads]
+    assert len(set(cells)) == len(cells)                          # unique cells
+    assert qa.split(qa.audit(sb))[0] == []                        # clean after repair
+
+
+def test_repair_syncs_chart_label_for_same_date_duplicates():
+    sb = _brief(funding=FundingSection(title="F", rounds=[
+        FundingRoundView(label="Series C", date="2017", amount="$20M"),
+        FundingRoundView(label="Series C", date="2017", amount="$80M"),
+    ], chart=[FundingPoint(label="Series C", value=20.0, date="2017"),
+              FundingPoint(label="Series C", value=80.0, date="2017")]))
+    sb = qa.repair(sb)
+    chart_labels = sorted(p.label for p in sb.funding.chart)
+    round_labels = sorted(r.label for r in sb.funding.rounds)
+    assert chart_labels == round_labels          # no collapse to one label
+    assert len(set(chart_labels)) == 2           # both points distinctly labeled
+
+
 def test_repair_forces_winner_into_tr():
     sb = _brief(competitors=_comp([
         QuadrantItem(name="Carousell", quadrant="br", winner=True),

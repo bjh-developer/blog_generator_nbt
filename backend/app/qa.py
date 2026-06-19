@@ -80,11 +80,15 @@ def _repair_funding(sb: StoryBrief) -> None:
             yr = _year(r.date)
             r.label = f"{r.label} ({yr})" if yr else f"{r.label} ({counts[key] + 1})"
         counts[key] = counts.get(key, 0) + 1
-    # keep chart point labels in sync with the (possibly renamed) rounds by date
-    date_to_label = {r.date: r.label for r in f.rounds if r.date}
+    # keep chart point labels in sync with the (possibly renamed) rounds, pairing
+    # by date and consuming each match so same-date duplicates don't collapse to
+    # one label
+    remaining = list(f.rounds)
     for p in f.chart:
-        if p.date in date_to_label:
-            p.label = date_to_label[p.date]
+        match = next((r for r in remaining if r.date == p.date), None)
+        if match:
+            p.label = match.label
+            remaining.remove(match)
 
     # clear a later valuation that drops below an earlier one (bad parse/units)
     vals = [r for r in f.rounds if r.valuation and _money_to_float(r.valuation) is not None]
@@ -108,6 +112,10 @@ def _repair_competitors(sb: StoryBrief) -> None:
         seen.add(k)
         kept.append(q)
     c.quadrants = kept
+
+    # at most 4 cards — one per cell. Keep the winner(s) first, then others.
+    if len(c.quadrants) > 4:
+        c.quadrants = sorted(c.quadrants, key=lambda q: 0 if q.winner else 1)[:4]
 
     # enforce exactly one winner
     winners = [q for q in c.quadrants if q.winner]
@@ -193,6 +201,10 @@ def _audit_competitors(sb: StoryBrief) -> List[Issue]:
     if not cs:
         return out
     quads = cs.quadrants
+
+    # more than 4 cards can't fit one-per-cell in a 2x2 — hard (repair caps to 4)
+    if len(quads) > 4:
+        out.append(("error", f"competitors: {len(quads)} cards, expected exactly 4"))
 
     # duplicate competitor labels — hard (the "overlaps in labels" case)
     names = [q.name.strip().lower() for q in quads if q.name]
