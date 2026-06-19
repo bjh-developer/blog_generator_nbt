@@ -41,6 +41,32 @@ def test_stat_bar_drops_overlong_prose_values():
     assert all(len(v) <= 12 for v in vals)        # prose stat dropped
 
 
+def test_clean_funding_drops_junk_amountless_dedupes_sorts():
+    funding = [
+        FundingRound(round="", date="", amount_usd=None),                       # junk: empty
+        FundingRound(round="Multiple rounds (unspecified)", date="2012-2019",
+                     valuation_usd=550_000_000),                                # junk label
+        FundingRound(round="Grant", date="2012", amount_usd=None),             # no amount
+        FundingRound(round="Series C", date="2017", amount_usd=85_000_000),
+        FundingRound(round="Series C (2017)", date="2017"),                    # dup, no amount
+        FundingRound(round="Seed", date="2013", amount_usd=800_000),
+    ]
+    out = editorial.clean_funding(funding)
+    labels = [f.round for f in out]
+    assert labels == ["Seed", "Series C"]            # junk + amount-less gone, sorted by date
+    assert all(f.amount_usd for f in out)
+
+
+def test_clean_funding_backfills_amount_from_duplicate():
+    funding = [
+        FundingRound(round="Series A", date="2014"),                  # no amount
+        FundingRound(round="Series A (2014)", date="2014", amount_usd=7_800_000),
+    ]
+    out = editorial.clean_funding(funding)
+    assert len(out) == 1
+    assert out[0].amount_usd == 7_800_000            # backfilled before amount-less drop
+
+
 def test_assemble_omits_unsupported_sections():
     rd = ResearchDoc(startup_name="Luma")          # no funding/competitors/timeline
     nar = _Narratives(hero_line1="Luma didn't build an event platform.",

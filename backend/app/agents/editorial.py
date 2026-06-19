@@ -107,6 +107,49 @@ def funding_rounds(rd: ResearchDoc) -> List[FundingRoundView]:
     return out
 
 
+_FUNDING_JUNK = ("unspecified", "multiple rounds")
+
+
+def clean_funding(funding: list) -> list:
+    """Turn the research merge's noisy funding list into clean, chartable rounds.
+
+    1. drop junk-label rounds (empty / 'unspecified' / 'multiple rounds')
+    2. dedupe by (label sans trailing '(YYYY)', year), backfilling amount/val/investors
+    3. drop rounds with no amount (can't be charted, clutter the list)
+    4. sort chronologically
+    """
+    kept = []
+    for f in funding:
+        lbl = (f.round or "").strip()
+        if not lbl:
+            continue
+        if any(j in lbl.lower() for j in _FUNDING_JUNK):
+            continue
+        kept.append(f)
+
+    by_key: dict = {}
+    order: list = []
+    for f in kept:
+        base = re.sub(r"\s*\(\d{4}\)$", "", f.round).strip().lower()
+        key = (base, (f.date or "")[:4])
+        if key not in by_key:
+            by_key[key] = f
+            order.append(key)
+        else:
+            k = by_key[key]
+            if not k.amount_usd and f.amount_usd:
+                k.amount_usd = f.amount_usd
+            if not k.valuation_usd and f.valuation_usd:
+                k.valuation_usd = f.valuation_usd
+            if not k.investors and f.investors:
+                k.investors = f.investors
+    deduped = [by_key[k] for k in order]
+
+    deduped = [f for f in deduped if f.amount_usd]
+    deduped.sort(key=lambda f: f.date or "")
+    return deduped
+
+
 # --- LLM narrative contract ------------------------------------------------
 
 class _Quadrant(LenientModel):
@@ -341,6 +384,14 @@ def assemble(rd: ResearchDoc, nar: _Narratives, sources: List[Source],
 async def build(rd: ResearchDoc, sources: List[Source]) -> StoryBrief:
     log.info("=== editorial: building story for %s ===", rd.startup_name)
     corpus = "\n".join(store.read_cached_text(s.raw_text_ref) for s in sources)
+
+    # clean the research merge's noisy funding into chartable rounds; an empty
+    # result makes assemble() omit the funding section entirely
+    if rd.funding:
+        before = len(rd.funding)
+        rd.funding = clean_funding(rd.funding)
+        if len(rd.funding) != before:
+            log.info("funding cleaned: %d -> %d rounds", before, len(rd.funding))
 
     # relevance + grounding gates (the key problem)
     if rd.metrics and corpus:
