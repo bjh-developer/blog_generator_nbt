@@ -178,6 +178,22 @@ def test_repair_syncs_chart_label_for_same_date_duplicates():
     assert len(set(chart_labels)) == 2           # both points distinctly labeled
 
 
+def test_repair_orients_axis_winner_trait_to_right_end():
+    # winner (mobile-first) sits tr, but axis_x reads with mobile-first on the LEFT
+    sb = _brief(competitors=CompetitorSection(
+        title="Map",
+        axis_x="Mobile-first listing <-> Desktop-first listing",
+        axis_y="Utility <-> Entertainment",
+        quadrants=[
+            QuadrantItem(name="Carousell", their_bet="Mobile-first snap-and-list",
+                         quadrant="br", winner=True),
+            QuadrantItem(name="eBay", their_bet="Desktop auctions", quadrant="tl"),
+        ]))
+    sb = qa.repair(sb)
+    # winner trait ("mobile-first") must end up on the RIGHT (second half)
+    assert sb.competitors.axis_x.split("<->")[1].strip().lower().startswith("mobile-first")
+
+
 def test_repair_forces_winner_into_tr():
     sb = _brief(competitors=_comp([
         QuadrantItem(name="Carousell", quadrant="br", winner=True),

@@ -98,6 +98,29 @@ def _repair_funding(sb: StoryBrief) -> None:
             cur.valuation = None
 
 
+_AXIS_SEPS = ("←→", "<->", "↔", "→", "<>")
+
+
+def _overlap(text: str, ref: str) -> int:
+    """Count of meaningful (len>=4) word tokens shared between text and ref."""
+    a = {w for w in re.findall(r"[a-z]+", text.lower()) if len(w) >= 4}
+    b = {w for w in re.findall(r"[a-z]+", ref.lower()) if len(w) >= 4}
+    return len(a & b)
+
+
+def _orient_axis(axis: str, winner_text: str) -> str:
+    """Ensure the second half of a 'A <sep> B' axis describes the winner. If the
+    first half matches the winner better, swap the halves. Leave untouched when
+    there's no separator or no signal either way."""
+    for sep in _AXIS_SEPS:
+        if sep in axis:
+            left, right = (s.strip() for s in axis.split(sep, 1))
+            if _overlap(left, winner_text) > _overlap(right, winner_text):
+                return f"{right} {sep} {left}"
+            return axis
+    return axis
+
+
 def _repair_competitors(sb: StoryBrief) -> None:
     c = sb.competitors
     if not c:
@@ -140,6 +163,15 @@ def _repair_competitors(sb: StoryBrief) -> None:
             if free:
                 q.quadrant = free
         used.add(q.quadrant)
+
+    # the winner sits top-right, so the RIGHT end of axis_x and the TOP (second)
+    # end of axis_y must describe the winner's traits. Flip a label whose first
+    # half matches the winner better than its second half.
+    winner = next((q for q in c.quadrants if q.winner), None)
+    if winner:
+        wtext = f"{winner.their_bet} {winner.the_gap} {winner.name}"
+        c.axis_x = _orient_axis(c.axis_x, wtext)
+        c.axis_y = _orient_axis(c.axis_y, wtext)
 
 
 def _repair_timeline(sb: StoryBrief) -> None:
