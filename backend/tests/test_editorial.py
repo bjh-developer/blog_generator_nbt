@@ -23,6 +23,24 @@ def test_stat_bar_from_metrics_capped_at_4():
     assert len(editorial.stat_bar(rd)) == 4
 
 
+def test_normalize_stat_compresses_units():
+    f = editorial.normalize_stat_value
+    assert f("$1.1 billion") == "$1.1B"
+    assert f("42 million") == "42M"
+    assert f("Over $42 billion") == ">$42B"      # quantifier + unit both applied
+
+
+def test_stat_bar_drops_overlong_prose_values():
+    rd = ResearchDoc(startup_name="Carousell", metrics=[
+        Metric(label="App Store Ranking", value="Top 2 Free Lifestyle App in Singapore"),
+        Metric(label="Valuation", value="$1.1 billion"),
+    ])
+    bar = editorial.stat_bar(rd)
+    vals = [s.value for s in bar]
+    assert "$1.1B" in vals
+    assert all(len(v) <= 12 for v in vals)        # prose stat dropped
+
+
 def test_assemble_omits_unsupported_sections():
     rd = ResearchDoc(startup_name="Luma")          # no funding/competitors/timeline
     nar = _Narratives(hero_line1="Luma didn't build an event platform.",

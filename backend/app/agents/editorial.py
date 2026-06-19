@@ -42,8 +42,48 @@ def funding_chart(rd: ResearchDoc) -> List[FundingPoint]:
     return pts
 
 
+# quantifier words -> symbol, applied to the front of a stat value
+_QUANT = [
+    ("more than ", ">"), ("over ", ">"), ("greater than ", ">"), ("at least ", ">"),
+    ("less than ", "<"), ("under ", "<"), ("fewer than ", "<"), ("up to ", "<"),
+    ("approximately ", "~"), ("approx ", "~"), ("nearly ", "~"), ("almost ", "~"),
+    ("around ", "~"), ("about ", "~"),
+]
+# verbose magnitude words -> compact suffix (first match wins; space forms first)
+_UNIT = [(" billion", "B"), (" million", "M"), (" thousand", "K"),
+         ("bn", "B"), ("mn", "M")]
+_STAT_MAX_LEN = 12
+
+
+def _compress_units(v: str) -> str:
+    low = v.lower()
+    for word, sym in _UNIT:
+        idx = low.find(word)
+        if idx != -1:
+            return v[:idx] + sym + v[idx + len(word):]
+    return v
+
+
+def normalize_stat_value(value: str) -> str:
+    v = value.strip()
+    low = v.lower()
+    for word, sym in _QUANT:
+        if low.startswith(word):
+            v = sym + v[len(word):].lstrip()
+            break
+    return _compress_units(v)
+
+
 def stat_bar(rd: ResearchDoc) -> List[StatItem]:
-    return [StatItem(value=m.value, label=m.label) for m in rd.metrics[:4]]
+    out: List[StatItem] = []
+    for m in rd.metrics:
+        val = normalize_stat_value(m.value)
+        if len(val) > _STAT_MAX_LEN:
+            continue                       # drop prose-like stats (e.g. "Top 2 Free...")
+        out.append(StatItem(value=val, label=m.label))
+        if len(out) >= 4:
+            break
+    return out
 
 
 def timeline_items(rd: ResearchDoc) -> List[TimelineItem]:
