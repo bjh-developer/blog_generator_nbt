@@ -178,6 +178,17 @@ def test_repair_syncs_chart_label_for_same_date_duplicates():
     assert len(set(chart_labels)) == 2           # both points distinctly labeled
 
 
+def test_repair_normalizes_axis_arrows_to_double():
+    sb = _brief(competitors=_comp([
+        QuadrantItem(name="W", quadrant="tr", winner=True),
+        QuadrantItem(name="R", quadrant="bl"),
+    ], axis_x="Simplicity → Power →", axis_y="Low ↔ High"))
+    sb = qa.repair(sb)
+    assert "←→" in sb.competitors.axis_x
+    assert sb.competitors.axis_x.count("→") == 1     # single canonical arrow
+    assert "←→" in sb.competitors.axis_y
+
+
 def test_repair_orients_axis_winner_trait_to_right_end():
     # winner (mobile-first) sits tr, but axis_x reads with mobile-first on the LEFT
     sb = _brief(competitors=CompetitorSection(
@@ -190,8 +201,9 @@ def test_repair_orients_axis_winner_trait_to_right_end():
             QuadrantItem(name="eBay", their_bet="Desktop auctions", quadrant="tl"),
         ]))
     sb = qa.repair(sb)
-    # winner trait ("mobile-first") must end up on the RIGHT (second half)
-    assert sb.competitors.axis_x.split("<->")[1].strip().lower().startswith("mobile-first")
+    # winner trait ("mobile-first") must end up on the RIGHT (second half),
+    # and the arrow is normalized to ←→
+    assert sb.competitors.axis_x.split("←→")[1].strip().lower().startswith("mobile-first")
 
 
 def test_repair_forces_winner_into_tr():

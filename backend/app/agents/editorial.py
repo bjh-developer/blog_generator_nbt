@@ -53,13 +53,17 @@ _QUANT = [
 _UNIT = [(" billion", "B"), (" million", "M"), (" thousand", "K"),
          ("bn", "B"), ("mn", "M")]
 _STAT_MAX_LEN = 12
+# a real stat leads with a number (after an optional ~ < > and/or $)
+_STAT_NUM = re.compile(r"^[~<>≈]?\s*\$?\s*\d")
 
 
 def _compress_units(v: str) -> str:
     low = v.lower()
     for word, sym in _UNIT:
         idx = low.find(word)
-        if idx != -1:
+        # only compress a magnitude word attached to a number, so "half a
+        # million" doesn't collapse into "half aM"
+        if idx > 0 and v[idx - 1].isdigit():
             return v[:idx] + sym + v[idx + len(word):]
     return v
 
@@ -80,6 +84,8 @@ def stat_bar(rd: ResearchDoc) -> List[StatItem]:
         val = normalize_stat_value(m.value)
         if len(val) > _STAT_MAX_LEN:
             continue                       # drop prose-like stats (e.g. "Top 2 Free...")
+        if not _STAT_NUM.match(val):
+            continue                       # drop non-quantitative junk (e.g. "half aM")
         out.append(StatItem(value=val, label=m.label))
         if len(out) >= 4:
             break

@@ -98,7 +98,8 @@ def _repair_funding(sb: StoryBrief) -> None:
             cur.valuation = None
 
 
-_AXIS_SEPS = ("←→", "<->", "↔", "→", "<>")
+# any arrow form the model emits (→, <->, ↔, doubled, trailing) splits the axis
+_ARROW_RE = re.compile(r"\s*(?:<->|<>|[←→↔]+)\s*")
 
 
 def _overlap(text: str, ref: str) -> int:
@@ -109,16 +110,17 @@ def _overlap(text: str, ref: str) -> int:
 
 
 def _orient_axis(axis: str, winner_text: str) -> str:
-    """Ensure the second half of a 'A <sep> B' axis describes the winner. If the
-    first half matches the winner better, swap the halves. Leave untouched when
-    there's no separator or no signal either way."""
-    for sep in _AXIS_SEPS:
-        if sep in axis:
-            left, right = (s.strip() for s in axis.split(sep, 1))
-            if _overlap(left, winner_text) > _overlap(right, winner_text):
-                return f"{right} {sep} {left}"
-            return axis
-    return axis
+    """Normalize an axis to 'A ←→ B' with the winner's trait on the right (B).
+    Collapses any arrow form to a single '←→', strips stray arrows, and swaps
+    the halves if the first matches the winner better. Single-label axes pass
+    through unchanged."""
+    parts = [p.strip() for p in _ARROW_RE.split(axis) if p.strip()]
+    if len(parts) < 2:
+        return axis
+    left, right = parts[0], parts[-1]
+    if _overlap(left, winner_text) > _overlap(right, winner_text):
+        left, right = right, left
+    return f"{left} ←→ {right}"
 
 
 def _repair_competitors(sb: StoryBrief) -> None:

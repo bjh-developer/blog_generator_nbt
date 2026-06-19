@@ -30,6 +30,23 @@ def test_normalize_stat_compresses_units():
     assert f("Over $42 billion") == ">$42B"      # quantifier + unit both applied
 
 
+def test_compress_units_requires_digit_before():
+    f = editorial.normalize_stat_value
+    assert f("half a million") == "half a million"   # no digit -> not compressed
+    assert f("$5mn") == "$5M"                         # digit-attached -> compressed
+
+
+def test_stat_bar_drops_non_numeric_values():
+    rd = ResearchDoc(startup_name="X", metrics=[
+        Metric(label="Monthly active users", value="half a million"),  # -> dropped (len/non-num)
+        Metric(label="First customers", value="10"),                   # kept (numeric)
+        Metric(label="Raised", value="$30M"),
+    ])
+    vals = [s.value for s in editorial.stat_bar(rd)]
+    assert "10" in vals and "$30M" in vals
+    assert not any("aM" in v for v in vals)          # the "half aM" bug is gone
+
+
 def test_stat_bar_drops_overlong_prose_values():
     rd = ResearchDoc(startup_name="Carousell", metrics=[
         Metric(label="App Store Ranking", value="Top 2 Free Lifestyle App in Singapore"),
