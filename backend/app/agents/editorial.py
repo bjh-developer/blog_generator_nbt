@@ -42,18 +42,78 @@ def funding_chart(rd: ResearchDoc) -> List[FundingPoint]:
     return pts
 
 
+# quantifier words -> symbol, applied to the front of a stat value
+_QUANT = [
+    ("more than ", ">"), ("over ", ">"), ("greater than ", ">"), ("at least ", ">"),
+    ("less than ", "<"), ("under ", "<"), ("fewer than ", "<"), ("up to ", "<"),
+    ("approximately ", "~"), ("approx ", "~"), ("nearly ", "~"), ("almost ", "~"),
+    ("around ", "~"), ("about ", "~"),
+]
+# verbose magnitude words -> compact suffix (first match wins; space forms first)
+_UNIT = [(" billion", "B"), (" million", "M"), (" thousand", "K"),
+         ("bn", "B"), ("mn", "M")]
+_STAT_MAX_LEN = 12
+
+
+def _compress_units(v: str) -> str:
+    low = v.lower()
+    for word, sym in _UNIT:
+        idx = low.find(word)
+        if idx != -1:
+            return v[:idx] + sym + v[idx + len(word):]
+    return v
+
+
+def normalize_stat_value(value: str) -> str:
+    v = value.strip()
+    low = v.lower()
+    for word, sym in _QUANT:
+        if low.startswith(word):
+            v = sym + v[len(word):].lstrip()
+            break
+    return _compress_units(v)
+
+
 def stat_bar(rd: ResearchDoc) -> List[StatItem]:
-    return [StatItem(value=m.value, label=m.label) for m in rd.metrics[:4]]
+    out: List[StatItem] = []
+    for m in rd.metrics:
+        val = normalize_stat_value(m.value)
+        if len(val) > _STAT_MAX_LEN:
+            continue                       # drop prose-like stats (e.g. "Top 2 Free...")
+        out.append(StatItem(value=val, label=m.label))
+        if len(out) >= 4:
+            break
+    return out
 
 
-def timeline_items(rd: ResearchDoc) -> List[TimelineItem]:
-    items: List[TimelineItem] = []
+# which moments define the success/failure storyline (lower = more important)
+_TIMELINE_PRIORITY = {
+    "inflection": 0,        # pivots, near-deaths, breakthroughs
+    "founder_story": 1,     # origin, the bet
+    "funding": 2,           # money milestones
+    "product": 3,           # routine shipping
+    "user_delight": 4,
+}
+_TIMELINE_MAX = 6
+
+
+def timeline_items(rd: ResearchDoc, max_items: int = _TIMELINE_MAX) -> List[TimelineItem]:
+    # Deterministic fallback when the LLM emits no timeline_events: dedupe, keep
+    # the most storyline-defining kinds up to a cap, then order chronologically.
+    seen: set = set()
+    uniq: list = []
     for e in rd.timeline + rd.product_evolution:
         year = (e.date or "")[:4]
-        items.append(TimelineItem(year=year, kind=e.kind, heading=e.event,
-                                  body=e.significance))
-    items.sort(key=lambda it: it.year or "")
-    return items
+        key = (year, e.event.strip().lower()[:60])
+        if key in seen:
+            continue
+        seen.add(key)
+        uniq.append((e, year))
+    uniq.sort(key=lambda ey: _TIMELINE_PRIORITY.get(ey[0].kind, 5))
+    top = uniq[:max_items]
+    top.sort(key=lambda ey: ey[1] or "")
+    return [TimelineItem(year=y, kind=e.kind, heading=e.event, body=e.significance)
+            for e, y in top]
 
 
 def funding_rounds(rd: ResearchDoc) -> List[FundingRoundView]:
@@ -67,7 +127,57 @@ def funding_rounds(rd: ResearchDoc) -> List[FundingRoundView]:
     return out
 
 
+_FUNDING_JUNK = ("unspecified", "multiple rounds")
+
+
+def clean_funding(funding: list) -> list:
+    """Turn the research merge's noisy funding list into clean, chartable rounds.
+
+    1. drop junk-label rounds (empty / 'unspecified' / 'multiple rounds')
+    2. dedupe by (label sans trailing '(YYYY)', year), backfilling amount/val/investors
+    3. drop rounds with no amount (can't be charted, clutter the list)
+    4. sort chronologically
+    """
+    kept = []
+    for f in funding:
+        lbl = (f.round or "").strip()
+        if not lbl:
+            continue
+        if any(j in lbl.lower() for j in _FUNDING_JUNK):
+            continue
+        kept.append(f)
+
+    by_key: dict = {}
+    order: list = []
+    for f in kept:
+        base = re.sub(r"\s*\(\d{4}\)$", "", f.round).strip().lower()
+        key = (base, (f.date or "")[:4])
+        if key not in by_key:
+            by_key[key] = f
+            order.append(key)
+        else:
+            k = by_key[key]
+            if not k.amount_usd and f.amount_usd:
+                k.amount_usd = f.amount_usd
+            if not k.valuation_usd and f.valuation_usd:
+                k.valuation_usd = f.valuation_usd
+            if not k.investors and f.investors:
+                k.investors = f.investors
+    deduped = [by_key[k] for k in order]
+
+    deduped = [f for f in deduped if f.amount_usd]
+    deduped.sort(key=lambda f: f.date or "")
+    return deduped
+
+
 # --- LLM narrative contract ------------------------------------------------
+
+class _TimelineN(LenientModel):
+    year: str = ""
+    kind: str = "product"
+    heading: str
+    body: str = ""
+
 
 class _Quadrant(LenientModel):
     name: str
@@ -124,6 +234,9 @@ class _Narratives(LenientModel):
         if isinstance(d.get("loop_nodes"), list):
             d["loop_nodes"] = [x for x in d["loop_nodes"]
                                if not isinstance(x, str) or x.strip()]
+        if isinstance(d.get("timeline_events"), list):
+            d["timeline_events"] = [x for x in d["timeline_events"]
+                                    if not isinstance(x, dict) or x.get("heading")]
         return d
 
     volume: str = "Vol. 01"
@@ -137,6 +250,7 @@ class _Narratives(LenientModel):
     core_insight_statement: Optional[str] = None
     core_insight_narrative: str = ""
     timeline_title: str = "The founder's journey"
+    timeline_events: List[_TimelineN] = Field(default_factory=list)
     loop_title: Optional[str] = None
     loop_nodes: List[str] = Field(default_factory=list)
     loop_center: str = "NETWORK EFFECT"
@@ -164,23 +278,36 @@ _SYS = (
     "ambitious 18-28 year olds (First Round Review meets Packy McCormick). Not a press "
     "release, not academic.\n\n"
     "RULES:\n"
-    "- Hero is a 2-part contrarian headline: line1 '<Startup> didn't build <obvious "
-    "thing>.' line2 'They built <unexpected insight>.' Pick accent_word_orange from "
-    "line2 (the pivot) and optionally accent_word_purple (a second word).\n"
-    "- Every narrative field is prose, not bullet points.\n"
+    "- Hero headline must be SHORT. line1 and line2 each <= 6 words. line1 '<Startup> "
+    "didn't build <obvious thing>.' line2 'They built <unexpected insight>.' Pick "
+    "accent_word_orange from line2 (the pivot) and optionally accent_word_purple.\n"
+    "- WRITE TIGHT. Every narrative field is prose, not bullets, and <= 3 sentences "
+    "(~60 words max). subheadline <= 20 words. Cut every word that isn't carrying weight.\n"
+    "- PRIORITIZE the story young founders care about: founder background and what they "
+    "did before, how the company actually started (origin), what the FIRST version of "
+    "the product looked like, and where the early money came from (investors/round). "
+    "Put founder background + origin into founder_mode_narrative; put the first-product "
+    "and money story into funding_narrative.\n"
     "- NEVER invent stats, names, or quotes not in the research. If unsupported, leave "
     "the field empty/null.\n"
-    "- lesson headlines must be specific to THIS company, contrarian or surprising.\n"
+    "- lesson headlines must be specific to THIS company, contrarian or surprising. "
+    "Lesson body <= 2 sentences.\n"
+    "- timeline_events: choose 4-6 KEY moments from the research that define the "
+    "success/failure storyline. Each heading <= 6 words; body one sentence. Assign "
+    "a varied kind (founder_story/product/funding/inflection/user_delight) — do NOT "
+    "tag everything the same. Order chronologically by year.\n"
     "- loop_nodes: exactly 4 short phrases describing the company's growth loop.\n"
-    "- quadrants: place each competitor (and the subject company as winner=true) into "
-    "tr/tl/br/bl of a 2x2 positioning map; set axis_x and axis_y. At most 5 quadrants.\n"
+    "- competitors: EXACTLY 4 quadrants — the subject company plus 3 rivals. Place "
+    "exactly ONE per cell (tr/tl/br/bl); never two in the same cell. The subject "
+    "company is winner=true and MUST be placed in 'tr'. Always set axis_x and axis_y.\n"
     "- Keep it tight: 3-4 lessons, at most 5 quadrants, 4 loop_nodes. No duplicates.\n\n"
     "Return ONLY a FLAT JSON object with EXACTLY these top-level keys (do not nest "
     "fields under a 'hero' or 'competitor' object):\n"
     '{"volume":"Vol. 01","category_tag":"","hero_line1":"","hero_line2":"",'
     '"accent_word_orange":"","accent_word_purple":"","subheadline":"",'
     '"core_insight_title":"","core_insight_statement":"","core_insight_narrative":"",'
-    '"timeline_title":"","loop_title":"","loop_nodes":["","","",""],"loop_center":"NETWORK EFFECT",'
+    '"timeline_title":"","timeline_events":[{"year":"","kind":"product","heading":"","body":""}],'
+    '"loop_title":"","loop_nodes":["","","",""],"loop_center":"NETWORK EFFECT",'
     '"loop_caption":"","funding_title":"","funding_narrative":"","pricing_note":"",'
     '"competitor_title":"","competitor_framing":"","axis_x":"","axis_y":"",'
     '"quadrants":[{"name":"","their_bet":"","the_gap":"","quadrant":"tr","winner":true}],'
@@ -210,13 +337,24 @@ def _research_digest(rd: ResearchDoc) -> str:
         parts.append(f"INSIGHT: {rd.pivotal_insight}")
     if rd.origin_story:
         parts.append(f"ORIGIN: {rd.origin_story[:600]}")
+    if rd.founders:
+        founders = _dedupe_keep_order([
+            f"- {f.name} ({f.role}): {f.background}"
+            + (f" | why: {f.why}" if f.why else "")
+            for f in rd.founders])[:5]
+        parts.append("FOUNDERS:\n" + "\n".join(founders))
+    if rd.product_evolution:
+        pe = _dedupe_keep_order([f"- {e.date} {e.event}: {e.significance}"
+                                 for e in rd.product_evolution])[:6]
+        parts.append("PRODUCT EVOLUTION (earliest = first version):\n" + "\n".join(pe))
     if rd.timeline:
         tl = _dedupe_keep_order([f"- {e.date} [{e.kind}] {e.event}: {e.significance}"
                                  for e in rd.timeline])[:10]
         parts.append("TIMELINE:\n" + "\n".join(tl))
     if rd.funding:
-        parts.append("FUNDING:\n" + "\n".join(
+        parts.append("FUNDING (investors = where money came from):\n" + "\n".join(
             f"- {f.round} {f.date} amount={f.amount_usd} val={f.valuation_usd}"
+            + (f" investors={', '.join(f.investors)}" if f.investors else "")
             for f in rd.funding[:6]))
     if rd.metrics:
         parts.append("METRICS:\n" + "\n".join(f"- {m.label}: {m.value}" for m in rd.metrics[:8]))
@@ -249,7 +387,14 @@ def assemble(rd: ResearchDoc, nar: _Narratives, sources: List[Source],
                            statement=nar.core_insight_statement,
                            narrative=nar.core_insight_narrative)
 
-    tl_items = timeline_items(rd)
+    _VALID_KINDS = ("founder_story", "product", "funding", "inflection", "user_delight")
+    if nar.timeline_events:
+        tl_items = [TimelineItem(
+            year=t.year,
+            kind=(t.kind if t.kind in _VALID_KINDS else "product"),
+            heading=t.heading, body=t.body) for t in nar.timeline_events if t.heading]
+    else:
+        tl_items = timeline_items(rd)        # deterministic fallback
     timeline = TimelineSection(title=nar.timeline_title, events=tl_items) if tl_items else None
 
     loop = None
@@ -302,6 +447,14 @@ async def build(rd: ResearchDoc, sources: List[Source]) -> StoryBrief:
     log.info("=== editorial: building story for %s ===", rd.startup_name)
     corpus = "\n".join(store.read_cached_text(s.raw_text_ref) for s in sources)
 
+    # clean the research merge's noisy funding into chartable rounds; an empty
+    # result makes assemble() omit the funding section entirely
+    if rd.funding:
+        before = len(rd.funding)
+        rd.funding = clean_funding(rd.funding)
+        if len(rd.funding) != before:
+            log.info("funding cleaned: %d -> %d rounds", before, len(rd.funding))
+
     # relevance + grounding gates (the key problem)
     if rd.metrics and corpus:
         before = len(rd.metrics)
@@ -313,8 +466,13 @@ async def build(rd: ResearchDoc, sources: List[Source]) -> StoryBrief:
         log.info("lessons relevant: %d kept", len(rd.lessons))
 
     try:
-        nar = await gateway.complete_json(_SYS, _research_digest(rd), _Narratives,
-                                          role="general", temperature=0.4)
+        # human-sounding voice: warmer temp + nucleus sampling, penalties to kill
+        # the repetitive boilerplate cadence that flags LLM prose.
+        nar = await gateway.complete_json(
+            _SYS, _research_digest(rd), _Narratives,
+            role="general", temperature=0.85,
+            sampling={"top_p": 0.92, "frequency_penalty": 0.5, "presence_penalty": 0.3},
+        )
     except gateway.LLMError as e:
         log.error("editorial narrative failed: %s — minimal fallback", e)
         nar = _Narratives(hero_line1=f"{rd.startup_name} didn't follow the playbook.",
