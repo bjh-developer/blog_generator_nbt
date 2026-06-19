@@ -278,13 +278,20 @@ _SYS = (
     "ambitious 18-28 year olds (First Round Review meets Packy McCormick). Not a press "
     "release, not academic.\n\n"
     "RULES:\n"
-    "- Hero is a 2-part contrarian headline: line1 '<Startup> didn't build <obvious "
-    "thing>.' line2 'They built <unexpected insight>.' Pick accent_word_orange from "
-    "line2 (the pivot) and optionally accent_word_purple (a second word).\n"
-    "- Every narrative field is prose, not bullet points.\n"
+    "- Hero headline must be SHORT. line1 and line2 each <= 6 words. line1 '<Startup> "
+    "didn't build <obvious thing>.' line2 'They built <unexpected insight>.' Pick "
+    "accent_word_orange from line2 (the pivot) and optionally accent_word_purple.\n"
+    "- WRITE TIGHT. Every narrative field is prose, not bullets, and <= 3 sentences "
+    "(~60 words max). subheadline <= 20 words. Cut every word that isn't carrying weight.\n"
+    "- PRIORITIZE the story young founders care about: founder background and what they "
+    "did before, how the company actually started (origin), what the FIRST version of "
+    "the product looked like, and where the early money came from (investors/round). "
+    "Put founder background + origin into founder_mode_narrative; put the first-product "
+    "and money story into funding_narrative.\n"
     "- NEVER invent stats, names, or quotes not in the research. If unsupported, leave "
     "the field empty/null.\n"
-    "- lesson headlines must be specific to THIS company, contrarian or surprising.\n"
+    "- lesson headlines must be specific to THIS company, contrarian or surprising. "
+    "Lesson body <= 2 sentences.\n"
     "- timeline_events: choose 4-6 KEY moments from the research that define the "
     "success/failure storyline. Each heading <= 6 words; body one sentence. Assign "
     "a varied kind (founder_story/product/funding/inflection/user_delight) — do NOT "
@@ -330,13 +337,24 @@ def _research_digest(rd: ResearchDoc) -> str:
         parts.append(f"INSIGHT: {rd.pivotal_insight}")
     if rd.origin_story:
         parts.append(f"ORIGIN: {rd.origin_story[:600]}")
+    if rd.founders:
+        founders = _dedupe_keep_order([
+            f"- {f.name} ({f.role}): {f.background}"
+            + (f" | why: {f.why}" if f.why else "")
+            for f in rd.founders])[:5]
+        parts.append("FOUNDERS:\n" + "\n".join(founders))
+    if rd.product_evolution:
+        pe = _dedupe_keep_order([f"- {e.date} {e.event}: {e.significance}"
+                                 for e in rd.product_evolution])[:6]
+        parts.append("PRODUCT EVOLUTION (earliest = first version):\n" + "\n".join(pe))
     if rd.timeline:
         tl = _dedupe_keep_order([f"- {e.date} [{e.kind}] {e.event}: {e.significance}"
                                  for e in rd.timeline])[:10]
         parts.append("TIMELINE:\n" + "\n".join(tl))
     if rd.funding:
-        parts.append("FUNDING:\n" + "\n".join(
+        parts.append("FUNDING (investors = where money came from):\n" + "\n".join(
             f"- {f.round} {f.date} amount={f.amount_usd} val={f.valuation_usd}"
+            + (f" investors={', '.join(f.investors)}" if f.investors else "")
             for f in rd.funding[:6]))
     if rd.metrics:
         parts.append("METRICS:\n" + "\n".join(f"- {m.label}: {m.value}" for m in rd.metrics[:8]))
@@ -448,8 +466,13 @@ async def build(rd: ResearchDoc, sources: List[Source]) -> StoryBrief:
         log.info("lessons relevant: %d kept", len(rd.lessons))
 
     try:
-        nar = await gateway.complete_json(_SYS, _research_digest(rd), _Narratives,
-                                          role="general", temperature=0.4)
+        # human-sounding voice: warmer temp + nucleus sampling, penalties to kill
+        # the repetitive boilerplate cadence that flags LLM prose.
+        nar = await gateway.complete_json(
+            _SYS, _research_digest(rd), _Narratives,
+            role="general", temperature=0.85,
+            sampling={"top_p": 0.92, "frequency_penalty": 0.5, "presence_penalty": 0.3},
+        )
     except gateway.LLMError as e:
         log.error("editorial narrative failed: %s — minimal fallback", e)
         nar = _Narratives(hero_line1=f"{rd.startup_name} didn't follow the playbook.",
