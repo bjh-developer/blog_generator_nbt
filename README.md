@@ -1,66 +1,188 @@
-# NBT Startup Breakdown Pipeline
+# NBT Blog Post Generator
 
-Input a company name → the pipeline researches it, synthesizes an editorial
-"startup breakdown" for young founders, and writes a JSON file that the Next.js
-blog renders as a hyperlinkable long-scroll page.
+Type a company name. The pipeline researches it, writes an editorial "startup
+breakdown" for young founders, and produces a JSON file that a Next.js blog
+renders as a hyperlinkable long-scroll page.
 
 ```
-backend/   Python pipeline  (Firecrawl → research → verify → editorial → JSON)
-web/       Next.js blog      (reads web/content/breakdowns/*.json, SSG)
-docs/      spec + plan
+company name ─▶ backend pipeline ─▶ web/content/breakdowns/<slug>.json ─▶ blog page
 ```
 
-## 1. Backend pipeline
+- **backend/** — Python pipeline: Firecrawl research → fact extraction → verify →
+  editorial → JSON. FastAPI server triggers it.
+- **web/** — Next.js blog that statically renders each JSON into a page.
+- **[TECHNICAL_DOCUMENTATION.md](TECHNICAL_DOCUMENTATION.md)** — how it works inside; `docs/` has specs & plans.
+
+---
+
+## Prerequisites
+
+- Python 3.10+
+- Node.js 18+ (Next.js 16)
+- Two API keys:
+  - **OpenRouter** — the LLM provider. Get one at <https://openrouter.ai/keys>.
+  - **Firecrawl** — web search + scrape. Get one at <https://firecrawl.dev>.
+
+---
+
+## Part 1 — Generate a blog post (backend)
+
+### 1. Install
 
 ```bash
 cd backend
 python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env        # set OPENROUTER_API_KEY and FIRECRAWL_API_KEY
-python -m pytest -q         # 26 tests, offline
-
-uvicorn app.main:app --reload          # http://localhost:8000/docs
-curl -X POST localhost:8000/generate -H 'content-type: application/json' \
-     -d '{"query":"Luma"}'
-# → writes web/content/breakdowns/luma.json, returns {slug, confidence, path}
 ```
 
-Pipeline stages (`backend/app/`):
-- `agents/source.py` — Firecrawl v2 `/search` + full markdown scrape + classify
-- `agents/research.py` — full content → structured `ResearchDoc` (sourced or null)
-- `agents/verify.py` — grounding score + relevance gate (youth-founder goal)
-- `agents/editorial.py` — `ResearchDoc` → `StoryBrief` (NBT editorial voice)
-- `pipeline.py` — orchestrates, writes the content file
+### 2. Configure keys
 
-Models (free OpenRouter, override in `.env`): `MODEL_FAST` (triage/relevance,
-keep it a small NON-reasoning model), `MODEL_GENERAL` (research/editorial).
+```bash
+cp .env.example .env
+```
 
-## 2. Web blog
+Open `.env` and fill in the two keys. The defaults for everything else work:
+
+```bash
+OPENROUTER_API_KEY=sk-or-...        # required
+FIRECRAWL_API_KEY=fc-...            # required
+PROMPT_CACHE=0                      # 0 = always generate fresh (recommended while iterating)
+```
+
+> **Tip:** leave `PROMPT_CACHE=0` while you're testing. With caching on, regenerating
+> the *same* company returns the previous result instead of a fresh one.
+
+### 3. (Optional) check your setup
+
+```bash
+python -m pytest -q          # runs offline, no keys needed — confirms install is sane
+uvicorn app.main:app --reload
+# then in another terminal:
+curl localhost:8000/health   # shows whether both keys are detected
+```
+
+### 4. Generate
+
+Start the server (if not already running):
+
+```bash
+uvicorn app.main:app --reload        # http://localhost:8000/docs
+```
+
+Request a breakdown by company name:
+
+```bash
+curl -X POST localhost:8000/generate \
+     -H 'content-type: application/json' \
+     -d '{"query":"Carousell", "max_sources":20}'
+```
+>`max_sources` is the number of search results returned by firecrawl and can vary (up to 100). Recommended to keep it at 20 as it's a good balance between resourcefulness and cost.
+
+The pipeline runs (research can take ~5 minutes — it scrapes and reads several
+articles) and writes `web/content/breakdowns/carousell.json`.
+
+**Response:**
+```json
+{
+  "slug": "carousell",
+  "startup_name": "Carousell",
+  "overall_confidence": 0.73,
+  "path": ".../web/content/breakdowns/carousell.json",
+  "qa_warnings": ["funding: 1 round(s) missing an amount, ..."]
+}
+```
+
+- `overall_confidence` — average grounding of the stats kept (0–1).
+- `qa_warnings` — advisory issues; the post was still written.
+- **HTTP 422 with `qa_errors`** — the quality gate found a hard problem it could not
+  auto-repair, so **nothing was written**. Fix the input (or the data) and retry.
+  See [TECHNICAL_DOCUMENTATION.md §2.4](TECHNICAL_DOCUMENTATION.md) for the full check list.
+
+Request options: `{"query": "<name>", "max_sources": 8}` — `max_sources` (default 8)
+caps how many articles are researched.
+
+---
+
+## Part 2 — View the blog (web)
 
 ```bash
 cd web
-npm install                 # next, react, recharts, lucide-react, tailwind
-npm run dev                 # http://localhost:3000/breakdowns
-# /breakdowns           → index of all generated breakdowns
-# /breakdowns/[slug]    → long-scroll editorial page
-npm run build               # SSG: one static page per content/breakdowns/*.json
+npm install
+npm run dev        # http://localhost:3000/breakdowns
 ```
 
-A sample `web/content/breakdowns/luma.json` ships so the UI renders before you
-run the pipeline. Drop `bernoru.woff2` into `web/public/fonts/` for the display
-font (falls back to Atkinson Hyperlegible).
+- `/breakdowns` — index of every generated breakdown.
+- `/breakdowns/<slug>` — the long-scroll editorial page.
 
-Hyperlink the deployed `/breakdowns/<slug>` URLs from your main site.
+A sample `luma.json` ships so the UI renders before you run the pipeline.
 
-## Data contract
+To publish statically:
 
-`StoryBrief` (`backend/app/schemas.py` ↔ `web/lib/types.ts`) is the spine.
-Every section is optional and rendered only when present, so all blogs share one
-template while emphasis varies by company. Every stat/quote is grounded in a
-source; low-confidence items are badged.
+```bash
+npm run build      # one static page per web/content/breakdowns/*.json
+```
 
-## Design
+Then hyperlink the deployed `/breakdowns/<slug>` URLs from your main site.
 
-Brand palette (mixed, not pure purple) + Atkinson fonts + lucide icons +
-recharts area charts. Section template, order, and color rotation in
-`web/lib/theme.ts`. Reference design + decisions: `docs/superpowers/specs/`.
+For the display font, drop `bernoru.woff2` into `web/public/fonts/` (falls back to
+Atkinson Hyperlegible).
+
+---
+
+## End-to-end, in short
+
+```bash
+# backend (one-time setup)
+cd backend && python3 -m venv .venv && . .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env          # add OPENROUTER_API_KEY + FIRECRAWL_API_KEY
+
+# generate
+uvicorn app.main:app --reload
+curl -X POST localhost:8000/generate -H 'content-type: application/json' -d '{"query":"Notion"}'
+
+# view
+cd ../web && npm install && npm run dev      # open /breakdowns/notion
+```
+
+---
+
+## What you get
+
+Every breakdown shares one template; sections appear only when the research
+supports them:
+
+- **Hero** — short catchy headline + a stat bar.
+- **Core insight** — the one non-obvious idea behind the company.
+- **Timeline** — 4–6 key milestones (founding, first product, pivots, funding).
+- **Product loop** — the growth/network-effect flywheel.
+- **Funding & pricing** — how they got their first money + how the product earns money,
+  with a capital-raised bar chart and round cards.
+- **Competitive map** — a 2×2 positioning matrix (winner top-right).
+- **Founder mode** — founder background and how the company started.
+- **Lessons** — 3–4 takeaways for builders.
+- **Closing** — the NBT take + a pull quote.
+
+Every stat/quote is grounded in a scraped source; low-confidence items are filtered
+or badged.
+
+---
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Same result every regenerate | Set `PROMPT_CACHE=0` in `.env`, or use a new company name. |
+| `OPENROUTER_API_KEY not set` | Fill `.env`; restart `uvicorn` so it reloads. |
+| `/health` shows `firecrawl_configured: false` | Add `FIRECRAWL_API_KEY`, restart. |
+| HTTP 422 `qa_errors` | The QA gate blocked a bad post; check the listed errors. |
+| Thin / empty sections | Few sources survived research; raise `max_sources` or pick a more-covered company. |
+| Hitting rate limits | Lower `LLM_RPM` in `.env` (free tier ≈ 20/min). |
+| Blog page 404 | The JSON isn't in `web/content/breakdowns/`; confirm the generate step wrote it. |
+
+---
+
+## Architecture & internals
+
+See **[TECHNICAL_DOCUMENTATION.md](TECHNICAL_DOCUMENTATION.md)** — pipeline stages, the LLM gateway,
+the QA audit/repair gate, data contracts, and how to extend the system.

@@ -2,9 +2,7 @@ import Link from "next/link";
 
 const ITEMS = [
   { label: "Home", href: "/" },
-  { label: "About", href: "/about" },
   { label: "Breakdowns", href: "/breakdowns" },
-  { label: "Contact", href: "/contact" },
 ];
 
 export function PillNav({ active = "Breakdowns" }: { active?: string }) {
