@@ -122,12 +122,17 @@ async def _raw_call(
     json_mode: bool,
     temperature: float,
     json_schema: Optional[dict] = None,
+    sampling: Optional[dict] = None,
 ) -> str:
     if not config.OPENROUTER_API_KEY:
         raise LLMError("OPENROUTER_API_KEY not set")
 
     model = model_for(role)
     body: dict = {"model": model, "messages": messages, "temperature": temperature}
+    # optional sampling knobs (top_p, frequency_penalty, presence_penalty, ...)
+    for k, v in (sampling or {}).items():
+        if v is not None:
+            body[k] = v
     # Step 1 (prevention): force JSON at decode time. Prefer structured outputs
     # (json_schema) when enabled; otherwise basic json_object mode.
     if json_schema is not None and config.LLM_JSON_SCHEMA:
@@ -138,7 +143,8 @@ async def _raw_call(
     elif json_mode:
         body["response_format"] = {"type": "json_object"}
 
-    cache_key = json.dumps({"m": model, "b": messages, "t": temperature}, sort_keys=True)
+    cache_key = json.dumps({"m": model, "b": messages, "t": temperature,
+                            "s": sampling or {}}, sort_keys=True)
     cached = store.prompt_cache_get(cache_key)
     if cached is not None:
         log.debug("cache hit model=%s", model)
@@ -190,10 +196,12 @@ async def complete_text(
     user: str,
     role: Role = "general",
     temperature: float = 0.3,
+    sampling: Optional[dict] = None,
 ) -> str:
     messages = [{"role": "system", "content": system},
                 {"role": "user", "content": user}]
-    return await _raw_call(messages, role, json_mode=False, temperature=temperature)
+    return await _raw_call(messages, role, json_mode=False, temperature=temperature,
+                           sampling=sampling)
 
 
 def _try_parse(raw: str, schema: Type[T]) -> Optional[T]:
@@ -217,6 +225,7 @@ async def complete_json(
     schema: Type[T],
     role: Role = "general",
     temperature: float = 0.2,
+    sampling: Optional[dict] = None,
 ) -> T:
     """Return a validated `schema` instance. Prevention (json mode/schema) +
     staged repair + one reformat-retry."""
@@ -224,7 +233,7 @@ async def complete_json(
     messages = [{"role": "system", "content": system},
                 {"role": "user", "content": user}]
     raw = await _raw_call(messages, role, json_mode=True, temperature=temperature,
-                          json_schema=json_schema)
+                          json_schema=json_schema, sampling=sampling)
     for attempt in range(2):
         result = _try_parse(raw, schema)
         if result is not None:

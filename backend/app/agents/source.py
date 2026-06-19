@@ -52,7 +52,10 @@ async def _firecrawl_search(query: str, max_records: int) -> list[dict]:
         "scrapeOptions": {
             "onlyMainContent": True,
             "maxAge": config.FIRECRAWL_MAX_AGE,
-            "parsers": [],
+            # "proxy": "stealth",
+            "parsers": [
+                "pdf"
+            ],
             "formats": ["markdown"],   # REQUIRED to get article text back
         },
     }
@@ -191,8 +194,8 @@ def pick_arc(labels: list[SourceLabel]) -> str:
 async def gather(query: str, max_sources: int = 8) -> tuple[list[Source], str]:
     """Return (accepted sources with cached text, story arc)."""
     log.info("=== gather query=%r max_sources=%d ===", query, max_sources)
-    raw = await _firecrawl_search(query, max_sources * 2)
-    candidates = _dedupe(raw)[: max_sources * 2]
+    raw = await _firecrawl_search(query, max_sources)
+    candidates = _dedupe(raw)[:max_sources]
     log.info("candidates after dedupe: %d", len(candidates))
 
     # 1) resolve usable text for each candidate (Firecrawl raw_content, else trafilatura)
