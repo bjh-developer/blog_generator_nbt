@@ -122,18 +122,25 @@ def timeline_items(rd: ResearchDoc, max_items: int = _TIMELINE_MAX) -> List[Time
             for e, y in top]
 
 
+def _fmt_usd(v: float) -> str:
+    """$1.5M / $85M / $1B / $3.2B — roll into billions at >= $1B."""
+    return f"${v/1e9:g}B" if v >= 1e9 else f"${v/1e6:g}M"
+
+
 def funding_rounds(rd: ResearchDoc) -> List[FundingRoundView]:
     out: List[FundingRoundView] = []
     for f in rd.funding:
         out.append(FundingRoundView(
             label=f.round, date=f.date,
-            amount=(f"${f.amount_usd/1e6:g}M" if f.amount_usd else None),
-            valuation=(f"${f.valuation_usd/1e9:g}B" if f.valuation_usd else None),
+            amount=(_fmt_usd(f.amount_usd) if f.amount_usd else None),
+            valuation=(_fmt_usd(f.valuation_usd) if f.valuation_usd else None),
         ))
     return out
 
 
-_FUNDING_JUNK = ("unspecified", "multiple rounds")
+# labels signalling the round was guessed/inferred, not grounded — drop them
+_FUNDING_JUNK = ("unspecified", "multiple rounds", "implied", "estimated",
+                 "approx", "unconfirmed", "rumored", "rumoured", "tbd")
 
 
 def clean_funding(funding: list) -> list:
@@ -284,24 +291,30 @@ _SYS = (
     "ambitious 18-28 year olds (First Round Review meets Packy McCormick). Not a press "
     "release, not academic.\n\n"
     "RULES:\n"
-    "- Hero headline must be SHORT. line1 and line2 each <= 6 words. line1 '<Startup> "
-    "didn't build <obvious thing>.' line2 'They built <unexpected insight>.' Pick "
-    "accent_word_orange from line2 (the pivot) and optionally accent_word_purple.\n"
+    "- Hero headline: two short, punchy lines (line1 + line2), each <= 6 words. Make "
+    "it catchy and attractive — a hook, not a formula. Pick accent_word_orange (and "
+    "optionally accent_word_purple) from a striking word in the headline.\n"
+    "- Reduce the use of 'not x but y' antithesis sentence structure "
+    "(e.g. [Company] didn't build [literal/expected thing]. They built "
+    "[abstract/emotional thing] over [literal thing it's compared to].).\n"
     "- WRITE TIGHT. Every narrative field is prose, not bullets, and <= 3 sentences "
     "(~60 words max). subheadline <= 20 words. Cut every word that isn't carrying weight.\n"
     "- PRIORITIZE the story young founders care about: founder background and what they "
-    "did before, how the company actually started (origin), what the FIRST version of "
-    "the product looked like, and where the early money came from (investors/round). "
-    "Put founder background + origin into founder_mode_narrative; put the first-product "
-    "and money story into funding_narrative.\n"
+    "did before, how the company actually started (origin), and what the FIRST version "
+    "of the product looked like. Put this into founder_mode_narrative.\n"
+    "- funding & pricing answer TWO questions only: (1) funding_narrative = how they got "
+    "their INITIAL money — the first capital that got them going (grants, competitions, "
+    "angels, friends/family, seed/early backers). (2) pricing_note = how the product "
+    "EARNS money — the revenue model and how customers actually pay. Keep each tight; "
+    "leave empty if the research doesn't support it.\n"
     "- NEVER invent stats, names, or quotes not in the research. If unsupported, leave "
     "the field empty/null.\n"
     "- lesson headlines must be specific to THIS company, contrarian or surprising. "
     "Lesson body <= 2 sentences.\n"
-    "- timeline_events: choose 4-6 KEY moments from the research that define the "
-    "success/failure storyline. Each heading <= 6 words; body one sentence. Assign "
-    "a varied kind (founder_story/product/funding/inflection/user_delight) — do NOT "
-    "tag everything the same. Order chronologically by year.\n"
+    "- timeline_events: 4-6 KEY MILESTONES in the company's journey (founding, first "
+    "product, pivots, major funding, breakout growth). Each heading <= 6 words; body "
+    "one sentence. Use varied kinds (founder_story/product/funding/inflection/"
+    "user_delight) — do NOT tag everything the same. Order chronologically by year.\n"
     "- loop_nodes: exactly 4 short phrases describing the company's growth loop.\n"
     "- competitors: EXACTLY 4 quadrants — the subject company plus 3 rivals. Place "
     "exactly ONE per cell (tr/tl/br/bl); never two in the same cell. The subject "

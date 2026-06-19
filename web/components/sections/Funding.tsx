@@ -1,9 +1,14 @@
 "use client";
 
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { TrendingUp, DollarSign } from "lucide-react";
 import type { FundingSection } from "@/lib/types";
 import { palette } from "@/lib/theme";
+
+// chart values are in $M; show compact labels ($0.02M, $0.6M, $1B)
+function fmtChartValue(v: number): string {
+  return v >= 1000 ? `$${+(v / 1000).toFixed(1)}B` : `$${+v.toFixed(2)}M`;
+}
 
 export function Funding({ data, eyebrow }: { data: FundingSection; eyebrow: string }) {
   return (
@@ -19,19 +24,27 @@ export function Funding({ data, eyebrow }: { data: FundingSection; eyebrow: stri
             {data.chart[0].unit ? ` (${data.chart[0].unit})` : ""}
           </div>
           <ResponsiveContainer width="100%" height={240}>
-            <AreaChart data={data.chart}>
+            <BarChart data={data.chart}>
               <defs>
                 <linearGradient id="fund" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={palette.blue} stopOpacity={0.5} />
-                  <stop offset="100%" stopColor={palette.blue} stopOpacity={0.05} />
+                  <stop offset="0%" stopColor={palette.blue} stopOpacity={0.95} />
+                  <stop offset="100%" stopColor={palette.blue} stopOpacity={0.5} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke={palette.lilac} />
+              <CartesianGrid strokeDasharray="3 3" stroke={palette.lilac} vertical={false} />
               <XAxis dataKey="label" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Area type="monotone" dataKey="value" stroke={palette.blue} strokeWidth={3} fill="url(#fund)" />
-            </AreaChart>
+              <Tooltip cursor={{ fill: palette.lilac, fillOpacity: 0.3 }} />
+              <Bar dataKey="value" fill="url(#fund)" radius={[6, 6, 0, 0]} minPointSize={4}>
+                <LabelList
+                  dataKey="value"
+                  position="top"
+                  fontSize={11}
+                  fill={palette.ink}
+                  formatter={(v: number) => fmtChartValue(v)}
+                />
+              </Bar>
+            </BarChart>
           </ResponsiveContainer>
         </div>
       )}

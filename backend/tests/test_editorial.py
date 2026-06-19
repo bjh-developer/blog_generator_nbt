@@ -74,6 +74,24 @@ def test_clean_funding_drops_junk_amountless_dedupes_sorts():
     assert all(f.amount_usd for f in out)
 
 
+def test_clean_funding_drops_implied_rounds():
+    funding = [
+        FundingRound(round="Series A", date="2015", amount_usd=6_000_000),
+        FundingRound(round="Series B (implied)", date="2017", amount_usd=1_000_000_000),
+    ]
+    out = editorial.clean_funding(funding)
+    assert [f.round for f in out] == ["Series A"]    # inferred round dropped
+
+
+def test_funding_rounds_formats_billions():
+    rd = ResearchDoc(startup_name="X", funding=[
+        FundingRound(round="Series C", date="2017", amount_usd=1_000_000_000,
+                     valuation_usd=31_000_000_000)])
+    rv = editorial.funding_rounds(rd)[0]
+    assert rv.amount == "$1B"
+    assert rv.valuation == "$31B"
+
+
 def test_clean_funding_backfills_amount_from_duplicate():
     funding = [
         FundingRound(round="Series A", date="2014"),                  # no amount

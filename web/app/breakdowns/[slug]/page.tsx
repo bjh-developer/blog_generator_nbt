@@ -57,7 +57,7 @@ export default async function BreakdownPage({ params }: { params: Promise<{ slug
       {story.lessons.length > 0 && <Lessons lessons={story.lessons} eyebrow="Lessons for builders" />}
       {story.closing && <Closing data={story.closing} accent={accentFor(i++)} />}
 
-      <Footer sources={story.sources} confidence={story.overall_confidence} />
+      <Footer sources={story.sources} />
     </main>
   );
 }
