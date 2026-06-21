@@ -269,13 +269,20 @@ async def complete_json(
     role: Role = "general",
     temperature: float = 0.2,
     sampling: Optional[dict] = None,
+    structured: bool = True,
 ) -> T:
     """Return a validated `schema` instance. Prevention (json mode/schema) +
-    staged repair + one reformat-retry."""
-    json_schema = schema.model_json_schema()
+    staged repair + reformat-retries.
+
+    `structured=False` sends no `response_format` (fully free-form) and leans on
+    the repair pipeline. Use it for models whose decode-time JSON enforcement is
+    pathologically slow (e.g. llama-3.3-70b on Cloudflare: ~99s constrained vs
+    ~4s free-form), where the prompt already specifies the JSON shape.
+    """
+    json_schema = schema.model_json_schema() if structured else None
     messages = [{"role": "system", "content": system},
                 {"role": "user", "content": user}]
-    raw = await _raw_call(messages, role, json_mode=True, temperature=temperature,
+    raw = await _raw_call(messages, role, json_mode=structured, temperature=temperature,
                           json_schema=json_schema, sampling=sampling)
     for attempt in range(2):
         result = _try_parse(raw, schema)
@@ -291,6 +298,6 @@ async def complete_json(
                 "no trailing commas. Use null for unknown values."
             ),
         })
-        raw = await _raw_call(messages, role, json_mode=True, temperature=0.0,
+        raw = await _raw_call(messages, role, json_mode=structured, temperature=0.0,
                               json_schema=json_schema)
     raise LLMError("model could not produce schema-valid JSON")

@@ -31,6 +31,9 @@ CF_API_TOKEN = os.getenv("CF_API_TOKEN", "")
 # fast: small model for triage/classify (NOT a reasoning model — those are slow)
 MODEL_FAST = os.getenv("MODEL_FAST", "@cf/meta/llama-3.2-3b-instruct")
 MODEL_GENERAL = os.getenv("MODEL_GENERAL", "@cf/mistralai/mistral-small-3.1-24b-instruct")
+# editorial: prose-critical single call — bigger model worth it. Runs free-form
+# (structured=False) because 70b's constrained-JSON decode is too slow (~99s).
+MODEL_EDITORIAL = os.getenv("MODEL_EDITORIAL", "@cf/meta/llama-3.3-70b-instruct-fp8-fast")
 # reasoning tier retired — alias to general so any stray role="reasoning" works
 MODEL_REASONING = os.getenv("MODEL_REASONING", MODEL_GENERAL)
 # fallback stays on OpenRouter (different provider) for failover

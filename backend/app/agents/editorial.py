@@ -492,7 +492,7 @@ async def build(rd: ResearchDoc, sources: List[Source]) -> StoryBrief:
         # the repetitive boilerplate cadence that flags LLM prose.
         nar = await gateway.complete_json(
             _SYS, _research_digest(rd), _Narratives,
-            role="general", temperature=0.85,
+            role="editorial", temperature=0.85, structured=False,
             sampling={"top_p": 0.92, "frequency_penalty": 0.5, "presence_penalty": 0.3},
         )
     except gateway.LLMError as e:

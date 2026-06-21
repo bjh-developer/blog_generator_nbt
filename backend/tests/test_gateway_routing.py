@@ -13,8 +13,39 @@ def test_config_cf_defaults(monkeypatch):
     assert config.MODEL_GENERAL == "@cf/mistralai/mistral-small-3.1-24b-instruct"
     assert config.MODEL_REASONING == config.MODEL_GENERAL
     assert config.MODEL_FALLBACK == "openrouter/owl-alpha"
+    assert config.MODEL_EDITORIAL == "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
     assert hasattr(config, "CF_ACCOUNT_ID")
     assert hasattr(config, "CF_API_TOKEN")
+
+
+def test_editorial_role_routes_to_editorial_model(monkeypatch):
+    from app.llm import models
+    monkeypatch.setattr(config, "MODEL_EDITORIAL", "@cf/meta/llama-3.3-70b-instruct-fp8-fast")
+    assert models.model_for("editorial") == "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+
+
+def test_structured_false_sends_no_response_format(monkeypatch):
+    """complete_json(structured=False) must produce a fully free-form request
+    (no response_format) — the slow-decode workaround for 70b."""
+    captured = {}
+
+    async def fake_call_model(model, messages, json_mode, temperature,
+                              json_schema=None, sampling=None):
+        captured["json_mode"] = json_mode
+        captured["json_schema"] = json_schema
+        return '{"x": "y"}'
+
+    from app.llm import gateway as gw
+    from pydantic import BaseModel
+
+    class M(BaseModel):
+        x: str
+
+    monkeypatch.setattr(gw, "_call_model", fake_call_model)
+    out = asyncio.run(gw.complete_json("s", "u", M, role="editorial", structured=False))
+    assert out.x == "y"
+    assert captured["json_mode"] is False
+    assert captured["json_schema"] is None
 
 
 from app.llm import gateway
