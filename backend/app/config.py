@@ -43,6 +43,9 @@ MODEL_FALLBACK = os.getenv("MODEL_FALLBACK", "openrouter/owl-alpha")
 LLM_RPM = int(os.getenv("LLM_RPM", "18"))          # headroom under 20
 LLM_TIMEOUT = float(os.getenv("LLM_TIMEOUT", "90"))
 LLM_MAX_RETRIES = int(os.getenv("LLM_MAX_RETRIES", "5"))
+# Cloudflare's default max_tokens is small (~256) and silently truncates long
+# JSON — set generously so multi-section research/editorial output isn't cut off.
+LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
 PROMPT_CACHE = os.getenv("PROMPT_CACHE", "1") == "1"
 # Structured outputs (json_schema) at decode time. On by default — DeepSeek V3
 # and Llama 3.3 70B both support it on OpenRouter. Set LLM_JSON_SCHEMA=0 in

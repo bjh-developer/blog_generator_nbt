@@ -139,7 +139,8 @@ def _repair_candidates(raw: str) -> list[tuple[str, str]]:
 
 
 def _build_body(model, messages, json_mode, temperature, json_schema, sampling):
-    body: dict = {"model": model, "messages": messages, "temperature": temperature}
+    body: dict = {"model": model, "messages": messages, "temperature": temperature,
+                  "max_tokens": config.LLM_MAX_TOKENS}
     # optional sampling knobs (top_p, frequency_penalty, presence_penalty, ...)
     for k, v in (sampling or {}).items():
         if v is not None:
