@@ -29,7 +29,7 @@ CF_API_TOKEN = os.getenv("CF_API_TOKEN", "")
 
 # Cloudflare Workers AI models (June 2026). Override per-role via env.
 # fast: small model for triage/classify (NOT a reasoning model — those are slow)
-MODEL_FAST = os.getenv("MODEL_FAST", "@cf/meta/llama-3.1-8b-instruct")
+MODEL_FAST = os.getenv("MODEL_FAST", "@cf/meta/llama-3.2-3b-instruct")
 MODEL_GENERAL = os.getenv("MODEL_GENERAL", "@cf/meta/llama-3.3-70b-instruct-fp8-fast")
 # reasoning tier retired — alias to general so any stray role="reasoning" works
 MODEL_REASONING = os.getenv("MODEL_REASONING", MODEL_GENERAL)
@@ -50,6 +50,8 @@ LLM_JSON_SCHEMA = os.getenv("LLM_JSON_SCHEMA", "1") == "1"
 FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY", "")    # primary discovery + scrape
 FIRECRAWL_SEARCH_API = "https://api.firecrawl.dev/v2/search"
 FIRECRAWL_MAX_AGE = int(os.getenv("FIRECRAWL_MAX_AGE", "172800000"))  # 2d cache (ms)
+# Dev fixture: set USE_FIXTURE=path/to/firecrawl_*.json to bypass live Firecrawl
+USE_FIXTURE = os.getenv("USE_FIXTURE", "")
 HTTP_UA = os.getenv("HTTP_UA", "Mozilla/5.0 (compatible; BlogGenerator/0.1)")
 
 # --- verification ----------------------------------------------------------

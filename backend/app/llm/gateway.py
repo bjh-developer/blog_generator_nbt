@@ -194,6 +194,10 @@ async def _call_model(
                 continue
             r.raise_for_status()
             content = r.json()["choices"][0]["message"]["content"]
+            # Cloudflare json_schema mode returns content as a parsed object;
+            # the repair/validation pipeline downstream expects a JSON string.
+            if not isinstance(content, str):
+                content = json.dumps(content)
             log.debug("response len=%d preview=%.120s", len(content),
                       content[:120].replace("\n", " "))
             store.prompt_cache_put(cache_key, content)
