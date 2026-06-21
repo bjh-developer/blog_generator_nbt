@@ -7,13 +7,13 @@ from .. import config
 
 Role = Literal["fast", "general", "reasoning", "fallback"]
 
-_BY_ROLE: dict[Role, str] = {
-    "fast": config.MODEL_FAST,
-    "general": config.MODEL_GENERAL,
-    "reasoning": config.MODEL_REASONING,
-    "fallback": config.MODEL_FALLBACK,
-}
-
 
 def model_for(role: Role) -> str:
-    return _BY_ROLE.get(role, config.MODEL_GENERAL)
+    # Read config live so env/test overrides aren't shadowed by an import-time snapshot.
+    by_role: dict[str, str] = {
+        "fast": config.MODEL_FAST,
+        "general": config.MODEL_GENERAL,
+        "reasoning": config.MODEL_REASONING,
+        "fallback": config.MODEL_FALLBACK,
+    }
+    return by_role.get(role, config.MODEL_GENERAL)
