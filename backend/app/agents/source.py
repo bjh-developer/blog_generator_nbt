@@ -8,8 +8,10 @@ each accepted article success|cautionary; the dominant label sets the story arc.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from difflib import SequenceMatcher
+from pathlib import Path
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -41,6 +43,12 @@ _QUERY_EXPANSION = (
 
 
 async def _firecrawl_search(query: str, max_records: int) -> list[dict]:
+    if config.USE_FIXTURE:
+        path = Path(config.USE_FIXTURE)
+        log.info("USE_FIXTURE set — loading %s (skipping live Firecrawl)", path)
+        data = json.loads(path.read_text())
+        return _normalize_results(data)
+
     if not config.FIRECRAWL_API_KEY:
         log.error("FIRECRAWL_API_KEY not set — no discovery source available")
         return []

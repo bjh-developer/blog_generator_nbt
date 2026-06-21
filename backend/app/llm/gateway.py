@@ -27,6 +27,28 @@ class LLMError(RuntimeError):
     pass
 
 
+def _provider_for(model: str) -> tuple[str, dict]:
+    """Pick (endpoint_url, headers) from the model id prefix.
+
+    `@cf/*` -> Cloudflare Workers AI (OpenAI-compat endpoint).
+    Anything else -> OpenRouter (default).
+    """
+    if model.startswith("@cf/"):
+        url = (
+            f"https://api.cloudflare.com/client/v4/accounts/"
+            f"{config.CF_ACCOUNT_ID}/ai/v1/chat/completions"
+        )
+        headers = {"Authorization": f"Bearer {config.CF_API_TOKEN}"}
+        return url, headers
+    url = f"{config.OPENROUTER_BASE}/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {config.OPENROUTER_API_KEY}",
+        "HTTP-Referer": "https://localhost",
+        "X-OpenRouter-Title": "BlogGenerator",
+    }
+    return url, headers
+
+
 class _RateLimiter:
     """Simple async token bucket: <= rpm requests per rolling minute."""
 
@@ -116,18 +138,7 @@ def _repair_candidates(raw: str) -> list[tuple[str, str]]:
     return [("extract", s0), ("cleanup", s2), ("sanitize", s4), ("balance", s3)]
 
 
-async def _raw_call(
-    messages: list[dict],
-    role: Role,
-    json_mode: bool,
-    temperature: float,
-    json_schema: Optional[dict] = None,
-    sampling: Optional[dict] = None,
-) -> str:
-    if not config.OPENROUTER_API_KEY:
-        raise LLMError("OPENROUTER_API_KEY not set")
-
-    model = model_for(role)
+def _build_body(model, messages, json_mode, temperature, json_schema, sampling):
     body: dict = {"model": model, "messages": messages, "temperature": temperature}
     # optional sampling knobs (top_p, frequency_penalty, presence_penalty, ...)
     for k, v in (sampling or {}).items():
@@ -142,6 +153,20 @@ async def _raw_call(
         }
     elif json_mode:
         body["response_format"] = {"type": "json_object"}
+    return body
+
+
+async def _call_model(
+    model: str,
+    messages: list[dict],
+    json_mode: bool,
+    temperature: float,
+    json_schema: Optional[dict] = None,
+    sampling: Optional[dict] = None,
+) -> str:
+    """Single model: build body, hit its provider, retry on 429/transient."""
+    body = _build_body(model, messages, json_mode, temperature, json_schema, sampling)
+    url, headers = _provider_for(model)
 
     cache_key = json.dumps({"m": model, "b": messages, "t": temperature,
                             "s": sampling or {}}, sort_keys=True)
@@ -149,12 +174,6 @@ async def _raw_call(
     if cached is not None:
         log.debug("cache hit model=%s", model)
         return cached
-
-    headers = {
-        "Authorization": f"Bearer {config.OPENROUTER_API_KEY}",
-        "HTTP-Referer": "https://localhost",
-        "X-OpenRouter-Title": "BlogGenerator",
-    }
 
     last_err: Optional[Exception] = None
     prompt_preview = messages[-1]["content"][:120].replace("\n", " ")
@@ -164,21 +183,21 @@ async def _raw_call(
         await _limiter.acquire()
         try:
             async with httpx.AsyncClient(timeout=config.LLM_TIMEOUT) as client:
-                r = await client.post(
-                    f"{config.OPENROUTER_BASE}/chat/completions",
-                    headers=headers,
-                    json=body,
-                )
+                r = await client.post(url, headers=headers, json=body)
             if r.status_code == 429:
                 # respect server Retry-After if present, else exponential backoff
                 ra = r.headers.get("Retry-After")
                 wait = float(ra) if ra and ra.isdigit() else min(30, 3 * (2 ** attempt))
-                log.warning("429 rate limited (attempt %d/%d), retry in %.0fs",
-                            attempt + 1, config.LLM_MAX_RETRIES, wait)
+                log.warning("429 rate limited model=%s (attempt %d/%d), retry in %.0fs",
+                            model, attempt + 1, config.LLM_MAX_RETRIES, wait)
                 await asyncio.sleep(wait)
                 continue
             r.raise_for_status()
             content = r.json()["choices"][0]["message"]["content"]
+            # Cloudflare json_schema mode returns content as a parsed object;
+            # the repair/validation pipeline downstream expects a JSON string.
+            if not isinstance(content, str):
+                content = json.dumps(content)
             log.debug("response len=%d preview=%.120s", len(content),
                       content[:120].replace("\n", " "))
             store.prompt_cache_put(cache_key, content)
@@ -186,9 +205,33 @@ async def _raw_call(
         except Exception as e:  # noqa: BLE001 - retry on any transient failure
             last_err = e
             wait = 2 ** attempt
-            log.warning("LLM error attempt %d: %s — retry in %ds", attempt + 1, e, wait)
+            log.warning("LLM error model=%s attempt %d: %s — retry in %ds",
+                        model, attempt + 1, e, wait)
             await asyncio.sleep(wait)
-    raise LLMError(f"LLM call failed after retries: {last_err}")
+    raise LLMError(f"LLM call failed after retries model={model}: {last_err}")
+
+
+async def _raw_call(
+    messages: list[dict],
+    role: Role,
+    json_mode: bool,
+    temperature: float,
+    json_schema: Optional[dict] = None,
+    sampling: Optional[dict] = None,
+) -> str:
+    """Try the role's model; on exhaustion fail over once to MODEL_FALLBACK."""
+    primary = model_for(role)
+    try:
+        return await _call_model(primary, messages, json_mode, temperature,
+                                 json_schema, sampling)
+    except LLMError as e:
+        fallback = config.MODEL_FALLBACK
+        if not fallback or fallback == primary:
+            raise
+        log.warning("primary model=%s failed (%s) — failing over to fallback=%s",
+                    primary, e, fallback)
+        return await _call_model(fallback, messages, json_mode, temperature,
+                                 json_schema, sampling)
 
 
 async def complete_text(
