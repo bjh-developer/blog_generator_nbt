@@ -23,3 +23,12 @@ def test_pick_arc_majority():
     assert source.pick_arc(["cautionary", "cautionary", "success"]) == "cautionary"
     assert source.pick_arc(["success", "success", "cautionary"]) == "success"
     assert source.pick_arc(["reject", "reject"]) == "success"   # default
+
+
+def test_classify_sys_includes_target():
+    from app.agents.source import _classify_sys
+    sys = _classify_sys("Luma AI")
+    assert "Luma AI" in sys                      # entity threaded in
+    assert "DIFFERENT" in sys                     # rejects same-name impostors
+    for label in ("success", "cautionary", "reject"):
+        assert label in sys
