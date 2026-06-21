@@ -27,6 +27,28 @@ class LLMError(RuntimeError):
     pass
 
 
+def _provider_for(model: str) -> tuple[str, dict]:
+    """Pick (endpoint_url, headers) from the model id prefix.
+
+    `@cf/*` -> Cloudflare Workers AI (OpenAI-compat endpoint).
+    Anything else -> OpenRouter (default).
+    """
+    if model.startswith("@cf/"):
+        url = (
+            f"https://api.cloudflare.com/client/v4/accounts/"
+            f"{config.CF_ACCOUNT_ID}/ai/v1/chat/completions"
+        )
+        headers = {"Authorization": f"Bearer {config.CF_API_TOKEN}"}
+        return url, headers
+    url = f"{config.OPENROUTER_BASE}/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {config.OPENROUTER_API_KEY}",
+        "HTTP-Referer": "https://localhost",
+        "X-OpenRouter-Title": "BlogGenerator",
+    }
+    return url, headers
+
+
 class _RateLimiter:
     """Simple async token bucket: <= rpm requests per rolling minute."""
 
