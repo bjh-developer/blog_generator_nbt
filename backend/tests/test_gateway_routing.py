@@ -10,7 +10,7 @@ def test_config_cf_defaults(monkeypatch):
     from app import config
     importlib.reload(config)
     assert config.MODEL_FAST == "@cf/meta/llama-3.2-3b-instruct"
-    assert config.MODEL_GENERAL == "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+    assert config.MODEL_GENERAL == "@cf/mistralai/mistral-small-3.1-24b-instruct"
     assert config.MODEL_REASONING == config.MODEL_GENERAL
     assert config.MODEL_FALLBACK == "openrouter/owl-alpha"
     assert hasattr(config, "CF_ACCOUNT_ID")

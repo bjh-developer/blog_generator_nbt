@@ -30,7 +30,7 @@ CF_API_TOKEN = os.getenv("CF_API_TOKEN", "")
 # Cloudflare Workers AI models (June 2026). Override per-role via env.
 # fast: small model for triage/classify (NOT a reasoning model — those are slow)
 MODEL_FAST = os.getenv("MODEL_FAST", "@cf/meta/llama-3.2-3b-instruct")
-MODEL_GENERAL = os.getenv("MODEL_GENERAL", "@cf/meta/llama-3.3-70b-instruct-fp8-fast")
+MODEL_GENERAL = os.getenv("MODEL_GENERAL", "@cf/mistralai/mistral-small-3.1-24b-instruct")
 # reasoning tier retired — alias to general so any stray role="reasoning" works
 MODEL_REASONING = os.getenv("MODEL_REASONING", MODEL_GENERAL)
 # fallback stays on OpenRouter (different provider) for failover
