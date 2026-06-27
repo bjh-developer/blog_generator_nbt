@@ -1,0 +1,213 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - navigation [ref=e3]:
+      - link "Home" [ref=e4] [cursor=pointer]:
+        - /url: /
+      - link "Breakdowns" [ref=e5] [cursor=pointer]:
+        - /url: /breakdowns
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - img [ref=e8]
+        - text: Vol. 01 · Startup Breakdown
+      - heading "From air mattresses to global phenomenon, Airbnb disrupts travel" [level=1] [ref=e10]:
+        - generic [ref=e11]: From air mattresses to
+        - generic [ref=e12]: global phenomenon, Airbnb disrupts travel
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - generic [ref=e15]: ~200
+          - generic [ref=e16]: Number of countries
+        - generic [ref=e17]:
+          - generic [ref=e18]: $2.78B
+          - generic [ref=e19]: Revenue
+        - generic [ref=e20]:
+          - generic [ref=e21]: $20.4B
+          - generic [ref=e22]: Gross Booking Value
+        - generic [ref=e23]:
+          - generic [ref=e24]: ">2M"
+          - generic [ref=e25]: Guests per night
+    - generic [ref=e26]:
+      - paragraph [ref=e27]: ✦ The founder's journey
+      - heading "The founder's journey" [level=2] [ref=e28]
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - generic [ref=e32]:
+            - generic [ref=e33]: "2008"
+            - generic [ref=e34]: Inflection
+          - heading "Airbnb started to catch fire." [level=3] [ref=e35]
+          - paragraph [ref=e36]: The company began to gain traction and attention.
+        - generic [ref=e37]:
+          - generic [ref=e39]:
+            - generic [ref=e40]: "2008"
+            - generic [ref=e41]: Inflection
+          - heading "They targeted the 2008 Democratic National Convention in Denver, Colorado." [level=3] [ref=e42]
+          - paragraph [ref=e43]: Although usage spiked for the event, they didn’t gain the day-to-day traction necessary to become profitable.
+        - generic [ref=e44]:
+          - generic [ref=e46]:
+            - generic [ref=e47]: "2008"
+            - generic [ref=e48]: Inflection
+          - heading "They decided to pivot and sell custom-designed Obama and McCain-themed cereal boxes." [level=3] [ref=e49]
+          - paragraph [ref=e50]: They sold $30,000 worth of cereal, which kept them afloat temporarily.
+        - generic [ref=e51]:
+          - generic [ref=e53]:
+            - generic [ref=e54]: "2013"
+            - generic [ref=e55]: Inflection
+          - heading "A CFO of one of the biggest hotel chains was asked about Airbnb and said, 'What’s Airbnb?'" [level=3] [ref=e56]
+          - paragraph [ref=e57]: The hotel industry was late to see Airbnb as a threat.
+        - generic [ref=e58]:
+          - generic [ref=e60]:
+            - generic [ref=e61]: "2019"
+            - generic [ref=e62]: Inflection
+          - heading "Marriott International announced plans for its own home-sharing service" [level=3] [ref=e63]
+          - paragraph [ref=e64]: Industry response to Airbnb's success
+        - generic [ref=e65]:
+          - generic [ref=e67]:
+            - generic [ref=e68]: "2020"
+            - generic [ref=e69]: Inflection
+          - heading "Airbnb went public" [level=3] [ref=e70]
+          - paragraph [ref=e71]: After 13 years, Airbnb made its public debut.
+    - generic [ref=e72]:
+      - paragraph [ref=e73]: ✦ Growth Loop
+      - generic [ref=e74]:
+        - img [ref=e75]:
+          - generic [ref=e81]: NETWORK
+          - generic [ref=e82]: EFFECT
+        - generic:
+          - generic:
+            - paragraph: Guests book unique spaces
+          - generic:
+            - paragraph: Hosts earn extra income
+          - generic:
+            - paragraph: New listings attract more guests
+          - generic:
+            - paragraph: Airbnb expands to new cities
+    - generic [ref=e83]:
+      - paragraph [ref=e84]: ✦ Funding & growth
+      - heading "Funding & growth" [level=2] [ref=e85]
+      - paragraph [ref=e86]: Initial funding came from Sequia Capital ($600,000) and Paul Graham ($20,000)
+      - generic [ref=e88]:
+        - img [ref=e89]
+        - text: Capital raised ($M)
+      - generic [ref=e93]:
+        - generic [ref=e94]:
+          - generic [ref=e95]:
+            - generic [ref=e96]: Seed
+            - generic [ref=e97]: "2008"
+          - generic [ref=e99]:
+            - img [ref=e100]
+            - text: 0.6M
+        - generic [ref=e102]:
+          - generic [ref=e103]:
+            - generic [ref=e104]: Seed (2009)
+            - generic [ref=e105]: "2009"
+          - generic [ref=e107]:
+            - img [ref=e108]
+            - text: 0.02M
+        - generic [ref=e110]:
+          - generic [ref=e111]:
+            - generic [ref=e112]: Series F
+            - generic [ref=e113]: "2017"
+          - generic [ref=e114]:
+            - generic [ref=e115]:
+              - img [ref=e116]
+              - text: 1B
+            - generic [ref=e118]: "@ $31B val"
+      - paragraph [ref=e119]: Airbnb earns money through a commission-based model, charging guests a service fee and hosts a hosting fee
+    - generic [ref=e120]:
+      - paragraph [ref=e121]: ✦ The competitive map
+      - heading "The competitive map" [level=2] [ref=e122]
+      - generic [ref=e123]:
+        - generic [ref=e125]: Asset-heavy business model ←→ Asset-light business model →
+        - generic [ref=e126]:
+          - generic [ref=e127]:
+            - paragraph [ref=e130]: Hilton
+            - paragraph [ref=e133]: Airbnb
+            - paragraph [ref=e136]: Marriott
+            - paragraph [ref=e139]: VRBO
+          - paragraph [ref=e140]: Traditional hospitality ←→ Community-driven marketplace →
+    - generic [ref=e141]:
+      - generic [ref=e142]:
+        - paragraph [ref=e143]: ✦ Lessons for builders
+        - heading "What ambitious founders should steal from this playbook." [level=2] [ref=e144]
+      - generic [ref=e145]:
+        - generic [ref=e146]:
+          - paragraph [ref=e147]: Lesson 01
+          - heading "Identify evolving customer needs key to success" [level=3] [ref=e148]
+          - paragraph [ref=e149]: "Success takes more than technology; identifying and meeting evolving customer needs is crucial: Airbnb's growth and success"
+          - button "Founders needing inspiration on how best understand customer needs" [ref=e150] [cursor=pointer]:
+            - img [ref=e151]
+            - text: Founders needing inspiration on how best understand customer needs
+        - generic [ref=e154]:
+          - paragraph [ref=e155]: Lesson 02
+          - heading "Create value for all market sides for guaranteed success" [level=3] [ref=e156]
+          - paragraph [ref=e157]: "If you can create value for all sides in a market, you really can’t help but be successful.: Airbnb was able to fundamentally change the nature of the travel market"
+          - button "Entrepreneurs seeking winning formulas" [ref=e158] [cursor=pointer]:
+            - img [ref=e159]
+            - text: Entrepreneurs seeking winning formulas
+        - generic [ref=e162]:
+          - paragraph [ref=e163]: Lesson 03
+          - heading "Believe in your vision despite critics or setbacks" [level=3] [ref=e164]
+          - paragraph [ref=e165]: "Believe in your product.: Staying in a stranger's house sounded like a terrible idea, but Airbnb proved it could work."
+          - button "Aspiring startup founders facing self-doubt" [ref=e166] [cursor=pointer]:
+            - img [ref=e167]
+            - text: Aspiring startup founders facing self-doubt
+    - generic [ref=e170]:
+      - paragraph [ref=e171]: ✦ The NBT take
+      - paragraph [ref=e172]: Lessons learned from Airbnb's journey emphasize understanding customers' evolving needs, offering value across markets, believing in one's vision despite adversity
+    - generic [ref=e174]:
+      - heading "Sources" [level=3] [ref=e175]
+      - list [ref=e176]:
+        - listitem [ref=e177]:
+          - link "https://review.firstround.com/how-design-thinking-transformed-airbnb-from-failing-startup-to-billion-dollar-business/" [ref=e178] [cursor=pointer]:
+            - /url: https://review.firstround.com/how-design-thinking-transformed-airbnb-from-failing-startup-to-billion-dollar-business/
+          - generic [ref=e179]: — review.firstround.com
+        - listitem [ref=e180]:
+          - link "https://knowledge.wharton.upenn.edu/podcast/knowledge-at-wharton-podcast/the-inside-story-behind-the-unlikely-rise-of-airbnb/" [ref=e181] [cursor=pointer]:
+            - /url: https://knowledge.wharton.upenn.edu/podcast/knowledge-at-wharton-podcast/the-inside-story-behind-the-unlikely-rise-of-airbnb/
+          - generic [ref=e182]: — knowledge.wharton.upenn.edu
+        - listitem [ref=e183]:
+          - link "https://www.acquired.fm/episodes/airbnb" [ref=e184] [cursor=pointer]:
+            - /url: https://www.acquired.fm/episodes/airbnb
+          - generic [ref=e185]: — www.acquired.fm
+        - listitem [ref=e186]:
+          - link "https://www.library.hbs.edu/working-knowledge/the-airbnb-lesson-for-startups-success-takes-more-than-technology" [ref=e187] [cursor=pointer]:
+            - /url: https://www.library.hbs.edu/working-knowledge/the-airbnb-lesson-for-startups-success-takes-more-than-technology
+          - generic [ref=e188]: — www.library.hbs.edu
+        - listitem [ref=e189]:
+          - link "https://fortune.com/2026/02/17/airbnb-ceo-brian-chesky-says-ai-best-thing-ever-happened-company-warns-other-founders-get-onboard-or-else/" [ref=e190] [cursor=pointer]:
+            - /url: https://fortune.com/2026/02/17/airbnb-ceo-brian-chesky-says-ai-best-thing-ever-happened-company-warns-other-founders-get-onboard-or-else/
+          - generic [ref=e191]: — fortune.com
+        - listitem [ref=e192]:
+          - link "https://ehandbook.com/how-airbnb-founders-sold-cereal-to-keep-their-dream-alive-d44223a9bdab" [ref=e193] [cursor=pointer]:
+            - /url: https://ehandbook.com/how-airbnb-founders-sold-cereal-to-keep-their-dream-alive-d44223a9bdab
+          - generic [ref=e194]: — ehandbook.com
+        - listitem [ref=e195]:
+          - link "https://podcasts.apple.com/au/podcast/ceo-diaries-airbnbs-founder-brian-chesky-on-brutal/id1291423644?i=1000710251662" [ref=e196] [cursor=pointer]:
+            - /url: https://podcasts.apple.com/au/podcast/ceo-diaries-airbnbs-founder-brian-chesky-on-brutal/id1291423644?i=1000710251662
+          - generic [ref=e197]: — podcasts.apple.com
+        - listitem [ref=e198]:
+          - link "https://www.britannica.com/money/Airbnb" [ref=e199] [cursor=pointer]:
+            - /url: https://www.britannica.com/money/Airbnb
+          - generic [ref=e200]: — www.britannica.com
+        - listitem [ref=e201]:
+          - link "https://reid.medium.com/how-to-scale-a-magical-experience-4-lessons-from-airbnbs-brian-chesky-eca0a182f3e3" [ref=e202] [cursor=pointer]:
+            - /url: https://reid.medium.com/how-to-scale-a-magical-experience-4-lessons-from-airbnbs-brian-chesky-eca0a182f3e3
+          - generic [ref=e203]: — reid.medium.com
+        - listitem [ref=e204]:
+          - link "https://www.linkedin.com/posts/swishgoswami_airbnb-co-founder-ceo-brian-chesky-scaled-activity-7398172659353780224-WUzf" [ref=e205] [cursor=pointer]:
+            - /url: https://www.linkedin.com/posts/swishgoswami_airbnb-co-founder-ceo-brian-chesky-scaled-activity-7398172659353780224-WUzf
+          - generic [ref=e206]: — www.linkedin.com
+        - listitem [ref=e207]:
+          - link "https://producthabits.com/how-two-designers-created-airbnb-and-turned-it-into-a-30-billion-company/" [ref=e208] [cursor=pointer]:
+            - /url: https://producthabits.com/how-two-designers-created-airbnb-and-turned-it-into-a-30-billion-company/
+          - generic [ref=e209]: — producthabits.com
+        - listitem [ref=e210]:
+          - link "https://resources.rework.com/libraries/leadership-legends/brian-chesky-leadership" [ref=e211] [cursor=pointer]:
+            - /url: https://resources.rework.com/libraries/leadership-legends/brian-chesky-leadership
+          - generic [ref=e212]: — resources.rework.com
+        - listitem [ref=e213]:
+          - link "https://www.herox.com/blog/538-how-airbnb-grew-up-and-took-flight" [ref=e214] [cursor=pointer]:
+            - /url: https://www.herox.com/blog/538-how-airbnb-grew-up-and-took-flight
+          - generic [ref=e215]: — www.herox.com
+      - paragraph [ref=e216]: Auto-generated by the NBT blog post pipeline
+  - button "Open Next.js Dev Tools" [ref=e222] [cursor=pointer]:
+    - img [ref=e223]

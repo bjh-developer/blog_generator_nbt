@@ -6,13 +6,40 @@ Keep StoryBrief in sync with web/lib/types.ts.
 """
 from __future__ import annotations
 
-from typing import List, Literal, Optional
+import re
+from typing import List, Literal, Optional, get_args
 
 from pydantic import BaseModel, Field, field_validator
 
 # --- shared ----------------------------------------------------------------
 
 TimelineKind = Literal["founder_story", "product", "funding", "inflection", "user_delight"]
+
+# OSS models emit human money strings ("$3.3 billion", "1.2M", "3.3 billion each")
+# for float fields. Parse to a number; unparseable -> None (field is Optional).
+_MONEY_MULT = {
+    "trillion": 1e12, "t": 1e12,
+    "billion": 1e9, "bn": 1e9, "b": 1e9,
+    "million": 1e6, "mm": 1e6, "m": 1e6,
+    "thousand": 1e3, "k": 1e3,
+}
+
+
+def _parse_money(s: str) -> Optional[float]:
+    t = s.strip().lower().replace(",", "").replace("$", "").replace("~", "").replace("≈", "")
+    m = re.search(r"-?\d+(?:\.\d+)?", t)
+    if not m:
+        return None
+    num = float(m.group())
+    tail = t[m.end():]
+    for w in sorted(_MONEY_MULT, key=len, reverse=True):
+        if re.match(rf"\s*{w}\b", tail):
+            return num * _MONEY_MULT[w]
+    return num
+
+
+def _is_float_field(f) -> bool:
+    return f.annotation is float or float in get_args(f.annotation)
 
 
 class LenientModel(BaseModel):
@@ -22,10 +49,14 @@ class LenientModel(BaseModel):
     @field_validator("*", mode="before")
     @classmethod
     def _none_to_default(cls, v, info):
+        f = cls.model_fields.get(info.field_name)
         if v is None:
-            f = cls.model_fields.get(info.field_name)
             if f is not None and isinstance(f.default, (str, list)):
                 return f.default
+            return v
+        # coerce human money strings on float fields; unparseable -> None
+        if isinstance(v, str) and f is not None and _is_float_field(f):
+            return _parse_money(v)
         return v
 
 

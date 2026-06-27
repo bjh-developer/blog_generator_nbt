@@ -34,6 +34,10 @@ MODEL_GENERAL = os.getenv("MODEL_GENERAL", "@cf/mistralai/mistral-small-3.1-24b-
 # editorial: prose-critical single call — bigger model worth it. Runs free-form
 # (structured=False) because 70b's constrained-JSON decode is too slow (~99s).
 MODEL_EDITORIAL = os.getenv("MODEL_EDITORIAL", "@cf/meta/llama-3.3-70b-instruct-fp8-fast")
+# research: per-source extraction — stronger model for better structured pulls.
+# Runs free-form (structured=False / json_object), so it dodges 70b's slow
+# constrained-JSON decode wall (that only bites json_schema).
+MODEL_RESEARCH = os.getenv("MODEL_RESEARCH", "@cf/meta/llama-3.3-70b-instruct-fp8-fast")
 # reasoning tier retired — alias to general so any stray role="reasoning" works
 MODEL_REASONING = os.getenv("MODEL_REASONING", MODEL_GENERAL)
 # fallback stays on OpenRouter (different provider) for failover

@@ -26,7 +26,7 @@ htmlcov/
 # Backend data (scraped cache, generated content, DB)
 backend/data/
 web/content/breakdowns/*.json
-!web/content/breakdowns/luma.json
+!web/content/breakdowns/airbnb.json
 
 # Node / Next.js
 node_modules/

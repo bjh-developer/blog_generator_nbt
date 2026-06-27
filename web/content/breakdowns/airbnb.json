@@ -1,0 +1,281 @@
+{
+  "meta": {
+    "startup_name": "Airbnb",
+    "slug": "airbnb",
+    "volume": "Vol. 01",
+    "category_tag": "",
+    "research_date": "2026-06-27"
+  },
+  "hero": {
+    "line1": "Renting air mattresses",
+    "line2": "to a $31 billion empire",
+    "accent_word_orange": "air",
+    "accent_word_purple": "",
+    "subheadline": "",
+    "stat_bar": [
+      {
+        "value": "~200",
+        "label": "Number of countries"
+      },
+      {
+        "value": "$2.78B",
+        "label": "Revenue"
+      },
+      {
+        "value": "$20.4B",
+        "label": "Gross Booking Value"
+      },
+      {
+        "value": ">2M",
+        "label": "Guests per night"
+      }
+    ]
+  },
+  "core_insight": {
+    "title": "The Lodging Battlefield",
+    "statement": "Airbnb didn't just offer a new place to stay, it created a sense of community and belonging for travelers.",
+    "narrative": "By providing a platform for people to connect with each other and experience new cultures, Airbnb filled a gap in the traditional hotel industry and created a new market for unique, local experiences.",
+    "icon": "Lightbulb"
+  },
+  "timeline": {
+    "title": "From Air Mattresses to $31 Billion",
+    "events": [
+      {
+        "year": "2007",
+        "kind": "founder_story",
+        "heading": "The idea is born",
+        "body": "Brian Chesky and Joe Gebbia rented out air mattresses in their apartment to attendees of a conference because all the hotels were booked."
+      },
+      {
+        "year": "2008",
+        "kind": "founder_story",
+        "heading": "Airbnb was founded",
+        "body": "The company was initially struggling and on the brink of failure."
+      },
+      {
+        "year": "2008-2009",
+        "kind": "product",
+        "heading": "Airbnb starts to catch fire",
+        "body": "The company began to gain traction and attract attention."
+      },
+      {
+        "year": "2017",
+        "kind": "funding",
+        "heading": "$1 billion round at $31 billion valuation",
+        "body": ""
+      },
+      {
+        "year": "2020",
+        "kind": "inflection",
+        "heading": "$82.47 billion market cap at IPO",
+        "body": ""
+      }
+    ]
+  },
+  "product_loop": {
+    "title": "The product loop",
+    "nodes": [
+      {
+        "label": "More hosts -> more listings",
+        "sub": ""
+      },
+      {
+        "label": "More listings -> more traveler trust",
+        "sub": ""
+      },
+      {
+        "label": "More trust -> more bookings",
+        "sub": ""
+      },
+      {
+        "label": "More bookings -> more hosts join",
+        "sub": ""
+      }
+    ],
+    "center_label": "NETWORK EFFECT",
+    "caption": ""
+  },
+  "funding": {
+    "title": "Sequoia's Early Bet",
+    "narrative": "Airbnb got its initial money from Sequia Capital in a seed round of $600,000 in 2008, followed by $20,000 from Y Combinator in 2009.",
+    "rounds": [
+      {
+        "label": "Seed",
+        "date": "2008",
+        "amount": "$0.6M",
+        "valuation": null,
+        "signal": ""
+      },
+      {
+        "label": "Y Combinator",
+        "date": "2009",
+        "amount": "$0.02M",
+        "valuation": null,
+        "signal": ""
+      },
+      {
+        "label": "Series F",
+        "date": "2017",
+        "amount": "$1B",
+        "valuation": "$31B",
+        "signal": ""
+      }
+    ],
+    "chart": [
+      {
+        "label": "Seed",
+        "value": 0.6,
+        "unit": "$M",
+        "date": "2008"
+      },
+      {
+        "label": "Y Combinator",
+        "value": 0.02,
+        "unit": "$M",
+        "date": "2009"
+      },
+      {
+        "label": "Series F",
+        "value": 1000.0,
+        "unit": "$M",
+        "date": "2017"
+      }
+    ],
+    "pricing_note": "Airbnb earns money through a commission-based model, taking a percentage of the booking value from each reservation."
+  },
+  "competitors": {
+    "title": "The Travel Market Showdown",
+    "framing": "",
+    "axis_x": "Transactional efficiency <-> Emotional experience",
+    "axis_y": "Commodity lodging <-> Unique experiences",
+    "quadrants": [
+      {
+        "name": "Hilton",
+        "their_bet": "",
+        "the_gap": "",
+        "quadrant": "tl",
+        "winner": false
+      },
+      {
+        "name": "VRBO",
+        "their_bet": "",
+        "the_gap": "",
+        "quadrant": "bl",
+        "winner": false
+      },
+      {
+        "name": "Marriott",
+        "their_bet": "",
+        "the_gap": "",
+        "quadrant": "br",
+        "winner": false
+      },
+      {
+        "name": "Airbnb",
+        "their_bet": "",
+        "the_gap": "",
+        "quadrant": "tr",
+        "winner": true
+      }
+    ]
+  },
+  "founder_mode": {
+    "title": "Designing a New Market",
+    "narrative": "Brian Chesky and Joe Gebbia were Rhode Island School of Design graduates who started Airbnb by renting out air mattresses in their apartment during a conference. They were joined by Nathan Blecharczyk, and together they turned their small experiment into a global phenomenon.",
+    "facts": []
+  },
+  "lessons": [
+    {
+      "number": 1,
+      "headline": "Start with your own pain — even if it’s just rent",
+      "body": "Airbnb’s founders started by solving their own problem of paying rent, which led to the creation of a massive market.",
+      "applicable_to": "Founders looking to identify problems worth solving"
+    },
+    {
+      "number": 2,
+      "headline": "Trust is the product, not a feature",
+      "body": "Airbnb’s success was driven by creating trust between hosts and guests, which became the core of its product.",
+      "applicable_to": "Companies looking to build trust with their users"
+    },
+    {
+      "number": 3,
+      "headline": "Create value for all sides in a market",
+      "body": "Airbnb provided value to both guests and hosts, especially during the financial crisis, which drove its success.",
+      "applicable_to": "Startups looking to create mutually beneficial platforms"
+    }
+  ],
+  "closing": {
+    "title": "The NBT take",
+    "narrative": "Airbnb's success can be attributed to its ability to identify and meet evolving customer needs, create value for all sides in a market, and build trust between hosts and guests.",
+    "pull_quote": null,
+    "attribution": null
+  },
+  "sources": [
+    {
+      "quote": null,
+      "outlet": "review.firstround.com",
+      "url": "https://review.firstround.com/how-design-thinking-transformed-airbnb-from-failing-startup-to-billion-dollar-business/"
+    },
+    {
+      "quote": null,
+      "outlet": "knowledge.wharton.upenn.edu",
+      "url": "https://knowledge.wharton.upenn.edu/podcast/knowledge-at-wharton-podcast/the-inside-story-behind-the-unlikely-rise-of-airbnb/"
+    },
+    {
+      "quote": null,
+      "outlet": "www.acquired.fm",
+      "url": "https://www.acquired.fm/episodes/airbnb"
+    },
+    {
+      "quote": null,
+      "outlet": "www.library.hbs.edu",
+      "url": "https://www.library.hbs.edu/working-knowledge/the-airbnb-lesson-for-startups-success-takes-more-than-technology"
+    },
+    {
+      "quote": null,
+      "outlet": "fortune.com",
+      "url": "https://fortune.com/2026/02/17/airbnb-ceo-brian-chesky-says-ai-best-thing-ever-happened-company-warns-other-founders-get-onboard-or-else/"
+    },
+    {
+      "quote": null,
+      "outlet": "ehandbook.com",
+      "url": "https://ehandbook.com/how-airbnb-founders-sold-cereal-to-keep-their-dream-alive-d44223a9bdab"
+    },
+    {
+      "quote": null,
+      "outlet": "podcasts.apple.com",
+      "url": "https://podcasts.apple.com/au/podcast/ceo-diaries-airbnbs-founder-brian-chesky-on-brutal/id1291423644?i=1000710251662"
+    },
+    {
+      "quote": null,
+      "outlet": "www.britannica.com",
+      "url": "https://www.britannica.com/money/Airbnb"
+    },
+    {
+      "quote": null,
+      "outlet": "reid.medium.com",
+      "url": "https://reid.medium.com/how-to-scale-a-magical-experience-4-lessons-from-airbnbs-brian-chesky-eca0a182f3e3"
+    },
+    {
+      "quote": null,
+      "outlet": "www.linkedin.com",
+      "url": "https://www.linkedin.com/posts/swishgoswami_airbnb-co-founder-ceo-brian-chesky-scaled-activity-7398172659353780224-WUzf"
+    },
+    {
+      "quote": null,
+      "outlet": "producthabits.com",
+      "url": "https://producthabits.com/how-two-designers-created-airbnb-and-turned-it-into-a-30-billion-company/"
+    },
+    {
+      "quote": null,
+      "outlet": "resources.rework.com",
+      "url": "https://resources.rework.com/libraries/leadership-legends/brian-chesky-leadership"
+    },
+    {
+      "quote": null,
+      "outlet": "www.herox.com",
+      "url": "https://www.herox.com/blog/538-how-airbnb-grew-up-and-took-flight"
+    }
+  ],
+  "overall_confidence": 0.826
+}
