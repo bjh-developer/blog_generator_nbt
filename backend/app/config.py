@@ -43,6 +43,8 @@ LLM_JSON_SCHEMA = os.getenv("LLM_JSON_SCHEMA", "1") == "1"
 FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY", "")    # primary discovery + scrape
 FIRECRAWL_SEARCH_API = "https://api.firecrawl.dev/v2/search"
 FIRECRAWL_MAX_AGE = int(os.getenv("FIRECRAWL_MAX_AGE", "172800000"))  # 2d cache (ms)
+# Dev fixture: set USE_FIXTURE=path/to/firecrawl_*.json to bypass live Firecrawl
+USE_FIXTURE = os.getenv("USE_FIXTURE", "")
 HTTP_UA = os.getenv("HTTP_UA", "Mozilla/5.0 (compatible; BlogGenerator/0.1)")
 
 # --- verification ----------------------------------------------------------

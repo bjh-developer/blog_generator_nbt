@@ -40,7 +40,7 @@ export default async function BreakdownPage({ params }: { params: Promise<{ slug
     notFound();
   }
 
-  const eyebrow = `${story.meta.volume} · ${story.meta.category_tag}`;
+  const eyebrow = story.meta.volume;
   let i = 0; // accent rotation index across rendered sections
 
   return (
