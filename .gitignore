@@ -56,3 +56,5 @@ logs/
 CLAUDE.md
 .claude
 docs
+# Playwright MCP review artifacts
+.playwright-mcp/

@@ -119,8 +119,13 @@ A sample `luma.json` ships so the UI renders before you run the pipeline.
 To publish statically:
 
 ```bash
-npm run build      # one static page per web/content/breakdowns/*.json
+# set the real origin so canonical / OpenGraph / JSON-LD URLs are correct
+NEXT_PUBLIC_SITE_URL=https://yoursite.com npm run build   # one static page per JSON
 ```
+
+Each page ships canonical + OpenGraph + Twitter tags and JSON-LD structured data
+(Article + Breadcrumb + FAQ, for SEO and answer-engine harvesting). `sitemap.xml`
+and `robots.txt` are deliberately left to the main site this route deploys into.
 
 Then hyperlink the deployed `/breakdowns/<slug>` URLs from your main site.
 
@@ -164,7 +169,8 @@ supports them:
 - **Closing** — the NBT take + a pull quote.
 
 Every stat/quote is grounded in a scraped source; low-confidence items are filtered
-or badged.
+or badged. Each page also has a reading-progress bar and a desktop section-nav rail
+with scroll-spy, and is mobile-responsive throughout.
 
 ---
 

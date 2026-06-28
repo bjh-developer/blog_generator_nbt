@@ -1,6 +1,6 @@
 # Technical Documentation — NBT Blog Post Pipeline
 
-How the system turns a company name into a published "startup breakdown" blog
+How the system turns a company name into a published "startup/company breakdown" blog
 post. Read this to understand internals, extend the pipeline, or debug output.
 
 For setup and day-to-day usage, see the [README](README.md).
@@ -86,6 +86,14 @@ the hero, core insight, `timeline_events` (LLM-chosen key milestones), product
 loop, funding/pricing narrative, competitor quadrants, founder mode, lessons,
 closing. A `model_validator` (`_flatten`) tolerates free-model drift: un-nests
 fields the model wrongly nested and drops malformed list entries.
+
+**Verify gates (run in `build` before the LLM call, via `agents/verify.py`):**
+- `semantic_filter_funding` — an LLM (`role="fast"`) drop-only pass that removes
+  funding rounds that actually belong to other companies, given the startup name +
+  origin/timeline context. Fails open (keeps all) on `LLMError`.
+- `filter_metrics` — grounding gate: keeps only metrics supported by the scraped
+  corpus (threshold `VERIFY_THRESHOLD`).
+- `relevance_filter` — drops off-topic lessons; never empties the list.
 
 `assemble` stitches `ResearchDoc` (facts) + `_Narratives` (prose) into the final
 `StoryBrief`. Timeline uses the LLM's `timeline_events`, falling back to
@@ -179,12 +187,37 @@ Zero-infra, all on disk under `backend/data/`:
 - `app/breakdowns/page.tsx` — index of all breakdowns.
 - `app/breakdowns/[slug]/page.tsx` — dynamic route; `generateStaticParams` lists
   every JSON, so each becomes a static page. `params` is a Promise (Next 15+),
-  awaited before use.
+  awaited before use. `generateMetadata` emits canonical + OpenGraph + Twitter
+  tags; the page injects JSON-LD (see SEO/AEO below).
 - `lib/content.ts` — reads `web/content/breakdowns/*.json`.
 - `lib/theme.ts` — brand palette, section color rotation, fonts.
 - `components/sections/*` — one component per `StoryBrief` section. The funding
   chart (`Funding.tsx`) is a recharts `BarChart` with per-bar value labels and a
   `minPointSize` so tiny rounds stay visible next to huge ones.
+- `components/ui/Eyebrow.tsx` — shared section kicker (Lucide icon + label); used
+  by every section so there are no ad-hoc unicode-glyph "icons".
+
+**Reading UX (client components, in `components/sections/`):**
+- `ReadingProgress.tsx` — fixed top scroll-progress bar; `scaleX` transform only
+  (no reflow), rAF-throttled.
+- `SectionNav.tsx` — desktop-only (`xl:`) floating table of contents with
+  IntersectionObserver scroll-spy and smooth-scroll (honors reduced-motion). The
+  page passes `darkIds` so the rail flips to a light theme over dark sections
+  (e.g. Lessons). The TOC is built in `page.tsx` from sections actually present.
+  Anchors: each section is wrapped in a `<div id=... className="scroll-mt-28">`.
+
+**SEO / AEO:**
+- `lib/seo.ts` — route-local (not in the root layout, so the whole breakdown
+  route stays portable into the main site without metadata conflicts). Exposes
+  `SITE_URL` (from `NEXT_PUBLIC_SITE_URL`), URL helpers, and `buildJsonLd(story)`
+  which returns an **Article** + **BreadcrumbList** + **FAQPage** graph. The
+  FAQPage leads with the hero question and adds each lesson as a Q/A pair — the
+  surface answer engines lift directly.
+- `components/JsonLd.tsx` — server component that emits `<script type="application
+  /ld+json">` into the static HTML (read without executing JS). Escapes `<` to
+  prevent a stray `</script>` in data from breaking out of the tag.
+- **Intentionally omitted:** `sitemap.ts` / `robots.ts` — those are site-global
+  and owned by the main site this route is deployed into.
 
 ---
 
@@ -206,6 +239,10 @@ Zero-infra, all on disk under `backend/data/`:
 | `USE_EMBEDDINGS` | 0 | optional local embedding verify |
 | `CONTENT_DIR` | `web/content/breakdowns` | where JSON is written |
 | `DATA_DIR` / `DB_PATH` | `backend/data` | cache + SQLite location |
+
+**Frontend env (`web/`):** `NEXT_PUBLIC_SITE_URL` sets the absolute origin used for
+canonical, OpenGraph, and JSON-LD URLs (defaults to a placeholder). Set it to the
+real deployment origin before building, or canonical tags point at the wrong host.
 
 ---
 
