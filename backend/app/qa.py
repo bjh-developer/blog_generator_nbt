@@ -94,7 +94,8 @@ def _repair_funding(sb: StoryBrief) -> None:
     vals = [r for r in f.rounds if r.valuation and _money_to_float(r.valuation) is not None]
     for prev, cur in zip(vals, vals[1:]):
         y1, y2 = _year(prev.date), _year(cur.date)
-        if y1 and y2 and y1 <= y2 and _money_to_float(cur.valuation) < _money_to_float(prev.valuation):
+        v_prev, v_cur = _money_to_float(prev.valuation), _money_to_float(cur.valuation)
+        if y1 and y2 and y1 <= y2 and v_prev is not None and v_cur is not None and v_cur < v_prev:
             cur.valuation = None
 
 
@@ -162,8 +163,8 @@ def _repair_competitors(sb: StoryBrief) -> None:
             continue
         if q.quadrant not in order or q.quadrant in used:
             free = next((cell for cell in order if cell not in used), None)
-            if free:
-                q.quadrant = free
+            if free and free in ("tr", "tl", "br", "bl"):
+                q.quadrant = free  # type: ignore[assignment]
         used.add(q.quadrant)
 
     # the winner sits top-right, so the RIGHT end of axis_x and the TOP (second)
@@ -223,7 +224,7 @@ def _audit_funding(sb: StoryBrief) -> List[Issue]:
             for r in rounds if r.valuation]
     vals = [v for v in vals if v[2] is not None]
     for (l1, y1, v1), (l2, y2, v2) in zip(vals, vals[1:]):
-        if y1 and y2 and y1 <= y2 and v2 < v1:
+        if y1 and y2 and y1 <= y2 and v1 is not None and v2 is not None and v2 < v1:
             out.append(("error", f"funding: valuation drops {l1} ({y1}) ${v1:,.0f} "
                                  f"-> {l2} ({y2}) ${v2:,.0f} — verify units/order"))
     return out

@@ -32,7 +32,7 @@ export function Competitors({ data, eyebrow }: { data: CompetitorSection; eyebro
       <h2 className="mt-3 font-display text-3xl font-extrabold sm:text-5xl">{data.title}</h2>
       {data.framing && <p className="mt-4 text-lg text-ink/75">{data.framing}</p>}
 
-      <div className="mt-10 flex gap-3">
+      <div className="mt-10 flex gap-3 pt-8 pb-6 px-2">
         {data.axis_y && (
           <div className="flex w-6 items-center justify-center">
             <span className="-rotate-90 whitespace-nowrap text-xs font-bold uppercase tracking-widest text-ink/50">

@@ -11,6 +11,7 @@ from pathlib import Path
 from app import config, qa
 from app.agents import editorial, research, source
 from app.schemas import StoryBrief
+from typing import List, Tuple
 
 log = logging.getLogger("app.pipeline")
 
@@ -35,7 +36,7 @@ def _next_volume(slug: str) -> str:
     return f"Vol. {idx:02d}"
 
 
-async def generate(query: str, max_sources: int = 8) -> StoryBrief:
+async def generate(query: str, max_sources: int = 8) -> Tuple[StoryBrief, List[str], List[str]]:
     log.info("▶ pipeline start query=%r", query)
     sources, _arc = await source.gather(query, max_sources=max_sources)
     log.info("▶ source done: %d sources", len(sources))
