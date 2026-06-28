@@ -1,5 +1,7 @@
+import { ArrowDown, RefreshCw } from "lucide-react";
 import type { ProductLoop as ProductLoopT } from "@/lib/types";
 import { palette } from "@/lib/theme";
+import { Eyebrow } from "@/components/ui/Eyebrow";
 
 // 4 nodes at 12/3/6/9 o'clock with dashed connecting arcs + center label.
 const POS = [
@@ -14,9 +16,34 @@ export function ProductLoop({ data }: { data: ProductLoopT }) {
   const nodes = data.nodes.slice(0, 4);
   return (
     <section className="mx-auto max-w-4xl px-6 py-20 text-center">
-      <p className="text-sm font-bold uppercase tracking-widest text-orange">✦ {data.title}</p>
+      <div className="flex justify-center">
+        <Eyebrow icon={RefreshCw}>The product loop</Eyebrow>
+      </div>
+      <h2 className="mt-3 font-display text-3xl font-extrabold sm:text-5xl">{data.title}</h2>
 
-      <div className="relative mt-10">
+      {/* Mobile: absolute-positioned diagram nodes overlap on narrow screens,
+          so show a linear stacked flow instead. */}
+      <ol className="mx-auto mt-10 flex max-w-sm flex-col items-stretch gap-3 sm:hidden">
+        {nodes.map((n, i) => (
+          <li key={i} className="flex flex-col items-center gap-3">
+            <div className="w-full rounded-2xl border border-lilac bg-white px-4 py-3 text-left shadow-sm">
+              <p className="font-display text-sm font-bold leading-tight">{n.label}</p>
+              {n.sub && <p className="mt-0.5 text-xs text-ink/60">{n.sub}</p>}
+            </div>
+            <ArrowDown
+              size={18}
+              aria-hidden
+              className="text-orange"
+              style={{ color: ARC_COLORS[i % 4] }}
+            />
+          </li>
+        ))}
+        <li className="rounded-2xl bg-orange/15 px-4 py-3 font-display text-sm font-bold text-orange">
+          {data.center_label}
+        </li>
+      </ol>
+
+      <div className="relative mt-10 hidden sm:block">
         <svg viewBox="0 0 700 500" className="mx-auto w-full max-w-2xl">
           {nodes.map((_, i) => {
             const a = POS[i];

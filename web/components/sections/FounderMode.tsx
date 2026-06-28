@@ -1,12 +1,11 @@
 import { Users } from "lucide-react";
 import type { FounderMode as FounderModeT } from "@/lib/types";
+import { Eyebrow } from "@/components/ui/Eyebrow";
 
 export function FounderMode({ data, eyebrow }: { data: FounderModeT; eyebrow: string }) {
   return (
     <section className="mx-auto max-w-3xl px-6 py-20">
-      <p className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-orange">
-        <Users size={16} /> {eyebrow}
-      </p>
+      <Eyebrow icon={Users}>{eyebrow}</Eyebrow>
       <h2 className="mt-3 font-display text-3xl font-extrabold sm:text-5xl">{data.title}</h2>
       {data.narrative && <p className="mt-4 text-lg text-ink/75">{data.narrative}</p>}
 

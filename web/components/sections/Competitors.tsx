@@ -1,5 +1,7 @@
+import { Map as MapIcon } from "lucide-react";
 import type { CompetitorSection, QuadrantItem } from "@/lib/types";
 import { palette } from "@/lib/theme";
+import { Eyebrow } from "@/components/ui/Eyebrow";
 
 const SLOTS: Record<string, string> = { tl: "tl", tr: "tr", bl: "bl", br: "br" };
 
@@ -28,7 +30,7 @@ export function Competitors({ data, eyebrow }: { data: CompetitorSection; eyebro
   const by = (slot: string) => data.quadrants.filter((q) => SLOTS[q.quadrant] === slot);
   return (
     <section className="mx-auto max-w-3xl px-6 py-20">
-      <p className="text-sm font-bold uppercase tracking-widest text-orange">✦ {eyebrow}</p>
+      <Eyebrow icon={MapIcon}>{eyebrow}</Eyebrow>
       <h2 className="mt-3 font-display text-3xl font-extrabold sm:text-5xl">{data.title}</h2>
       {data.framing && <p className="mt-4 text-lg text-ink/75">{data.framing}</p>}
 

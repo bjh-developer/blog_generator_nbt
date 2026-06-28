@@ -4,6 +4,7 @@ import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, 
 import { TrendingUp, DollarSign } from "lucide-react";
 import type { FundingSection } from "@/lib/types";
 import { palette } from "@/lib/theme";
+import { Eyebrow } from "@/components/ui/Eyebrow";
 
 // chart values are in $M; show compact labels ($0.02M, $0.6M, $1B)
 function fmtChartValue(v: number): string {
@@ -13,7 +14,7 @@ function fmtChartValue(v: number): string {
 export function Funding({ data, eyebrow }: { data: FundingSection; eyebrow: string }) {
   return (
     <section className="mx-auto max-w-3xl px-6 py-20">
-      <p className="text-sm font-bold uppercase tracking-widest text-orange">✦ {eyebrow}</p>
+      <Eyebrow icon={TrendingUp}>{eyebrow}</Eyebrow>
       <h2 className="mt-3 font-display text-3xl font-extrabold sm:text-5xl">{data.title}</h2>
       {data.narrative && <p className="mt-4 text-lg text-ink/75">{data.narrative}</p>}
 

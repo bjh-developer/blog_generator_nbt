@@ -1,0 +1,252 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - progressbar "Reading progress" [ref=e3]
+    - navigation [ref=e4]:
+      - link "Home" [ref=e5] [cursor=pointer]:
+        - /url: /
+      - link "Breakdowns" [ref=e6] [cursor=pointer]:
+        - /url: /breakdowns
+    - navigation "Sections" [ref=e7]:
+      - list [ref=e8]:
+        - listitem [ref=e9]:
+          - button "Insight" [ref=e10] [cursor=pointer]:
+            - generic [ref=e12]: Insight
+        - listitem [ref=e13]:
+          - button "Timeline" [ref=e14] [cursor=pointer]:
+            - generic [ref=e16]: Timeline
+        - listitem [ref=e17]:
+          - button "The Loop" [ref=e18] [cursor=pointer]:
+            - generic [ref=e20]: The Loop
+        - listitem [ref=e21]:
+          - button "Funding" [ref=e22] [cursor=pointer]:
+            - generic [ref=e24]: Funding
+        - listitem [ref=e25]:
+          - button "Competitors" [ref=e26] [cursor=pointer]:
+            - generic [ref=e28]: Competitors
+        - listitem [ref=e29]:
+          - button "Founder" [ref=e30] [cursor=pointer]:
+            - generic [ref=e32]: Founder
+        - listitem [ref=e33]:
+          - button "Lessons" [ref=e34] [cursor=pointer]:
+            - generic [ref=e36]: Lessons
+        - listitem [ref=e37]:
+          - button "The Take" [ref=e38] [cursor=pointer]:
+            - generic [ref=e40]: The Take
+    - generic [ref=e41]:
+      - generic [ref=e42]:
+        - img [ref=e43]
+        - text: Vol. 07
+      - heading "How did TreeDots turn a single avocado deal into Asia's first vertically integrated food supply chain?" [level=1] [ref=e45]:
+        - generic [ref=e46]: How did TreeDots turn a single
+        - generic [ref=e47]: avocado deal into Asia's first vertically integrated food supply chain?
+      - paragraph [ref=e48]: From surplus marketplace to logistics backbone for Asia's F&B industry.
+      - generic [ref=e49]:
+        - generic [ref=e50]:
+          - generic [ref=e51]: 2M tonnes
+          - generic [ref=e52]: Food waste reduction goal
+        - generic [ref=e53]:
+          - generic [ref=e54]: ~220
+          - generic [ref=e55]: Employees
+        - generic [ref=e56]:
+          - generic [ref=e57]: ~40
+          - generic [ref=e58]: Drivers in Singapore
+        - generic [ref=e59]:
+          - generic [ref=e60]: 10%
+          - generic [ref=e61]: Reduction in rescheduled deliveries
+    - generic [ref=e64]:
+      - paragraph [ref=e65]:
+        - img [ref=e66]
+        - text: The ugly-food arbitrage
+      - heading "Grocery chains reject food for looking imperfect. F&B outlets don't care because they cut and plate it anyway." [level=2] [ref=e68]
+      - paragraph [ref=e69]: That gap — perfectly good food selling for up to 90% less — became TreeDots' founding insight. The company built a marketplace matching surplus and imperfect produce to F&B buyers who value yield over aesthetics, then expanded into cold-chain logistics and route optimization to own the entire supply chain layer.
+    - generic [ref=e71]:
+      - paragraph [ref=e72]:
+        - img [ref=e73]
+        - text: The founder's journey
+      - heading "TreeDots Milestones" [level=2] [ref=e75]
+      - generic [ref=e76]:
+        - generic [ref=e77]:
+          - generic [ref=e79]:
+            - generic [ref=e80]: "2017"
+            - generic [ref=e81]: Founder Story
+          - heading "Founded as surplus marketplace" [level=3] [ref=e82]
+          - paragraph [ref=e83]: Tyler Jong, Nicholas Lim, and Jiacai Lau launched an online marketplace for surplus produce in Singapore after a renegotiated avocado shipment revealed how massive the food-waste arbitrage really was.
+        - generic [ref=e84]:
+          - generic [ref=e86]:
+            - generic [ref=e87]: "2019"
+            - generic [ref=e88]: Funding
+          - heading "Seed round led by Amasia" [level=3] [ref=e89]
+          - paragraph [ref=e90]: Early backing from a thesis-driven VC investing in sustainability via behavior change gave TreeDots the runway to prove the model.
+        - generic [ref=e91]:
+          - generic [ref=e93]:
+            - generic [ref=e94]: "2020"
+            - generic [ref=e95]: Product
+          - heading "Expanded into Malaysia" [level=3] [ref=e96]
+          - paragraph [ref=e97]: First international expansion beyond Singapore, validating that the surplus-food problem — and the marketplace solution — scaled across borders.
+        - generic [ref=e98]:
+          - generic [ref=e100]:
+            - generic [ref=e101]: "2021"
+            - generic [ref=e102]: Inflection
+          - heading "US$11M Series A and TreeLogs launch" [level=3] [ref=e103]
+          - paragraph [ref=e104]: An oversubscribed round co-led by East Ventures and Amasia, paired with the launch of TreeLogs cold-chain logistics, moved TreeDots from marketplace to vertically integrated supply chain platform.
+        - generic [ref=e105]:
+          - generic [ref=e107]:
+            - generic [ref=e108]: "2022"
+            - generic [ref=e109]: Inflection
+          - heading "Shut down B2C group-buying" [level=3] [ref=e110]
+          - paragraph [ref=e111]: The company killed its consumer arm, citing synergy challenges with B2B — a sharp strategic call to stay focused on enterprise supply chain density.
+        - generic [ref=e112]:
+          - generic [ref=e114]:
+            - generic [ref=e115]: "2024"
+            - generic [ref=e116]: Product
+          - heading "Google Maps routing integration" [level=3] [ref=e117]
+          - paragraph [ref=e118]: Partnered with Searce to deploy Google Maps Platform APIs, slashing failed deliveries from 2% to under 1% and giving drivers an extra 30 minutes per day.
+    - generic [ref=e120]:
+      - paragraph [ref=e122]:
+        - img [ref=e123]
+        - text: The product loop
+      - heading "The Density Flywheel" [level=2] [ref=e128]
+      - generic [ref=e129]:
+        - img [ref=e130]:
+          - generic [ref=e136]: NETWORK
+          - generic [ref=e137]: EFFECT
+        - generic:
+          - generic:
+            - paragraph: More surplus suppliers join the marketplace
+          - generic:
+            - paragraph: Higher delivery density per route zone
+          - generic:
+            - paragraph: Lower logistics cost per order attracts more F&B buyers
+          - generic:
+            - paragraph: More volume attracts more suppliers for all revenue, not just surplus
+      - paragraph [ref=e138]: Suppliers started using TreeDots for their entire revenue stream — not just loss products — because multi-supplier route density made every delivery cheaper.
+    - generic [ref=e140]:
+      - paragraph [ref=e141]:
+        - img [ref=e142]
+        - text: Funding & growth
+      - heading "How they got the first money" [level=2] [ref=e145]
+      - paragraph [ref=e146]: TreeDots raised a seed round in 2019 led by Amasia, a thesis-driven VC backing sustainability through behavior change. That early capital proved the surplus-marketplace model before the company closed an oversubscribed US$11M Series A in November 2021, co-led by East Ventures and Amasia with participation from ACTIVE Fund, Seeds Capital, and angels including Nir Eyal and Fiona Xie.
+      - generic [ref=e147]:
+        - generic [ref=e148]:
+          - img [ref=e149]
+          - text: Capital raised ($M)
+        - img [ref=e154]:
+          - generic [ref=e160]: Series A
+          - generic [ref=e162]:
+            - generic [ref=e164]: "0"
+            - generic [ref=e166]: "3"
+            - generic [ref=e168]: "6"
+            - generic [ref=e170]: "9"
+            - generic [ref=e172]: "12"
+      - generic [ref=e174]:
+        - generic [ref=e175]:
+          - generic [ref=e176]: Series A
+          - generic [ref=e177]: 2021-11-11
+        - generic [ref=e179]:
+          - img [ref=e180]
+          - text: 11M
+      - paragraph [ref=e182]: TreeDots earns money by connecting surplus food suppliers to F&B buyers on its marketplace and layering on logistics services — including its TreeLogs cold-chain offering and route-optimized last-mile delivery — creating multiple revenue touchpoints across a single supply chain relationship.
+    - generic [ref=e184]:
+      - paragraph [ref=e185]:
+        - img [ref=e186]
+        - text: The competitive map
+      - heading "Where TreeDots sits" [level=2] [ref=e188]
+      - paragraph [ref=e189]: Most food-waste platforms stop at listing surplus inventory. TreeDots built the logistics layer on top.
+      - generic [ref=e190]:
+        - generic [ref=e192]: Consumer-focused <-> F&B enterprise-focused →
+        - generic [ref=e193]:
+          - generic [ref=e194]:
+            - generic [ref=e196]:
+              - paragraph [ref=e197]: Olio
+              - paragraph [ref=e198]: Consumer-to-consumer food sharing app that relies on individuals giving away surplus
+              - paragraph [ref=e199]: ↳ Consumer-focused and marketplace-only with no enterprise supply chain integration
+            - generic [ref=e201]:
+              - paragraph [ref=e202]: TreeDots
+              - paragraph [ref=e203]: Own the full stack from surplus sourcing to last-mile cold-chain delivery for F&B enterprises
+              - paragraph [ref=e204]: ↳ Combines marketplace liquidity with logistics infrastructure — competitors typically do one or the other
+            - generic [ref=e206]:
+              - paragraph [ref=e207]: Flash Coffee
+              - paragraph [ref=e208]: Consumer-facing coffee brand using supply chain efficiency to deliver low prices
+            - generic [ref=e210]:
+              - paragraph [ref=e211]: Spoiler Alert
+              - paragraph [ref=e212]: B2B surplus inventory management platform for farms and producers
+              - paragraph [ref=e213]: ↳ Enterprise-focused but marketplace-only — no owned logistics or cold-chain layer
+          - paragraph [ref=e214]: Marketplace-only <-> Vertically integrated supply chain →
+    - generic [ref=e216]:
+      - paragraph [ref=e217]:
+        - img [ref=e218]
+        - text: Founder mode
+      - heading "The avocado deal that started it all" [level=2] [ref=e223]
+      - paragraph [ref=e224]: Nicholas Lim watched a coworker struggle to ship a full container of Mexican av. He rerouted it to the Philippines, renegotiated the price down against spoilage, and found a buyer immediately — exposing a system where tons of perfectly good food are dumped due to inefficient logistics, outdated regulations, and mismatched buyer expectations. He brought the insight to friends Tyler Jong and Jiacai Lau, and TreeDots launched in 2017 as a simple online marketplace connecting surplus produce with F&B buyers who didn't care what the food looked like, only what it cost.
+    - generic [ref=e226]:
+      - generic [ref=e227]:
+        - paragraph [ref=e228]:
+          - img [ref=e229]
+          - text: Lessons for builders
+        - heading "What ambitious founders should steal from this playbook." [level=2] [ref=e232]
+      - generic [ref=e233]:
+        - generic [ref=e234]:
+          - paragraph [ref=e235]: Lesson 01
+          - heading "One container of avocados revealed a billion-dollar blind spot." [level=3] [ref=e236]
+          - paragraph [ref=e237]: Nicholas rerouted a distressed shipment against spoilage and found a buyer instantly — proving that food waste is a logistics and information problem, not a supply problem. The best founding insights often hide inside a single painful transaction.
+          - generic [ref=e238]:
+            - img [ref=e239]
+            - text: Founders hunting for problems that look like inefficiencies but are actually massive markets
+        - generic [ref=e242]:
+          - paragraph [ref=e243]: Lesson 02
+          - heading "Suppliers will use your platform for everything — not just the problem you solved." [level=3] [ref=e244]
+          - paragraph [ref=e245]: TreeDots started as a surplus-only marketplace, but suppliers quickly routed all their volume through it because multi-supplier route density made every delivery cheaper. Building for one use case unlocked a much bigger logistics platform.
+          - generic [ref=e246]:
+            - img [ref=e247]
+            - text: Marketplace founders wondering how to expand beyond the initial niche
+        - generic [ref=e250]:
+          - paragraph [ref=e251]: Lesson 03
+          - heading "B2B and B2C can kill each other inside the same company." [level=3] [ref=e252]
+          - paragraph [ref=e253]: TreeDots shut down its consumer group-buying service in 2022 because the unit economics and operational rhythms conflicted with the enterprise business. Saying no to a revenue line is the kind of discipline that keeps startups alive.
+          - generic [ref=e254]:
+            - img [ref=e255]
+            - text: Founders tempted to chase every growth channel at once
+        - generic [ref=e258]:
+          - paragraph [ref=e259]: Lesson 04
+          - heading "Route optimization is a boring problem that prints money." [level=3] [ref=e260]
+          - paragraph [ref=e261]: Integrating Google Maps APIs cut failed deliveries from 2% to under 1%, saved 20% of customer-service calls, and gave drivers 30 extra minutes a day. Unsexy infrastructure improvements compound into real margin advantages.
+          - generic [ref=e262]:
+            - img [ref=e263]
+            - text: Logistics and delivery startups looking for the highest-leverage engineering investment
+    - generic [ref=e267]:
+      - heading "The NBT take" [level=2] [ref=e268]:
+        - img [ref=e269]
+        - text: The NBT take
+      - blockquote [ref=e271]:
+        - img [ref=e272]
+        - paragraph [ref=e275]: Suppliers started using the system for all of their revenue, not just food loss products.
+      - paragraph [ref=e276]: — TreeDots team on the density flywheel
+      - paragraph [ref=e277]: "TreeDots didn't just build a marketplace — it built the supply chain layer that marketplaces need to survive. By moving from surplus listing to vertically integrated logistics, the company turned a simple arbitrage insight into defensible infrastructure. For young founders in Southeast Asia, the lesson is clear: don't just connect buyers and sellers, own the road between them."
+    - generic [ref=e279]:
+      - heading "Sources" [level=3] [ref=e280]
+      - list [ref=e281]:
+        - listitem [ref=e282]:
+          - link "https://east.vc/news/press-release/treedots-raises-series-a-funds-from-east-ventures-amasia" [ref=e283] [cursor=pointer]:
+            - /url: https://east.vc/news/press-release/treedots-raises-series-a-funds-from-east-ventures-amasia
+          - generic [ref=e284]: — east.vc
+        - listitem [ref=e285]:
+          - link "https://thetreedots.com/our-story/" [ref=e286] [cursor=pointer]:
+            - /url: https://thetreedots.com/our-story/
+          - generic [ref=e287]: — thetreedots.com
+        - listitem [ref=e288]:
+          - link "https://cloud.google.com/customers/treedots" [ref=e289] [cursor=pointer]:
+            - /url: https://cloud.google.com/customers/treedots
+          - generic [ref=e290]: — cloud.google.com
+        - listitem [ref=e291]:
+          - link "https://www.businesstimes.com.sg/startups-tech/startups/tech-in-asia-1singapore-s-treedots-trims-tech-r-d-staff" [ref=e292] [cursor=pointer]:
+            - /url: https://www.businesstimes.com.sg/startups-tech/startups/tech-in-asia-1singapore-s-treedots-trims-tech-r-d-staff
+          - generic [ref=e293]: — www.businesstimes.com.sg
+        - listitem [ref=e294]:
+          - link "https://iie.smu.edu.sg/startup-treedots" [ref=e295] [cursor=pointer]:
+            - /url: https://iie.smu.edu.sg/startup-treedots
+          - generic [ref=e296]: — iie.smu.edu.sg
+      - paragraph [ref=e297]: Auto-generated by the NBT blog post pipeline
+  - button "Open Next.js Dev Tools" [ref=e303] [cursor=pointer]:
+    - img [ref=e304]
+  - alert [ref=e307]
+  - generic [ref=e308]: "0"
