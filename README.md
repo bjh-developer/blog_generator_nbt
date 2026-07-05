@@ -70,8 +70,14 @@ cd backend
 python generate.py "Carousell" --max-sources 20
 ```
 
-Prints QA warnings/errors and the written JSON path. Exits 1 (nothing written)
-if the QA gate fails. `--content-dir` overrides `CONTENT_DIR` for a single run.
+Prints QA warnings/errors and the written JSON path. `--content-dir` overrides
+`CONTENT_DIR` for a single run. The CLI exits 1 (nothing published) when:
+- the QA gate returns hard errors (the pipeline never wrote the file), **or**
+- the story came back empty — no sources *and* no lessons, which means every LLM
+  call failed (usually a retired model id or an exhausted free-tier quota). In
+  that case the pipeline still drops a near-empty shell JSON; the CLI deletes it
+  so a broken post never reaches the site, and tells you to check rate limits /
+  model ids and retry.
 
 **Option B — server + curl.** Start the server (if not already running):
 
@@ -158,7 +164,11 @@ cd backend && python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env          # add OPENROUTER_API_KEY + FIRECRAWL_API_KEY
 
-# generate
+# generate (either A or B)
+# option A (without running server)
+python generate.py "Carousell" --max-sources 20
+# OR
+# option B (with server)
 uvicorn app.main:app --reload
 curl -X POST localhost:8000/generate -H 'content-type: application/json' -d '{"query":"Notion"}'
 
@@ -200,7 +210,9 @@ with scroll-spy, and is mobile-responsive throughout.
 | HTTP 422 `qa_errors` | The QA gate blocked a bad post; check the listed errors. |
 | Thin / empty sections | Few sources survived research; raise `max_sources` or pick a more-covered company. |
 | Hitting rate limits | Lower `LLM_RPM` in `.env` (free tier ≈ 20/min). |
-| Blog page 404 | The JSON isn't in `web/content/breakdowns/`; confirm the generate step wrote it. |
+| `404 Not Found` from OpenRouter on every call | The configured model id was retired — free `:free` ids rotate often. List live ones with `curl -s https://openrouter.ai/api/v1/models \| python3 -c "import json,sys; [print(m['id']) for m in json.load(sys.stdin)['data'] if m['id'].endswith(':free')]"` and set working `MODEL_*` in `.env`. |
+| Empty JSON / `confidence 0.0` / all sections `null` | Every LLM call failed (retired model → 404, or free-tier daily cap → 429). The `generate.py` CLI removes the shell file and exits 1; the FastAPI path does not. Fix the model id or wait for quota, then retry. |
+| Blog page 404 | The JSON isn't in `CONTENT_DIR`; confirm the generate step wrote it (default `web/content/breakdowns/`, or the website repo if `CONTENT_DIR` is set). |
 
 ---
 
