@@ -63,7 +63,17 @@ curl localhost:8000/health   # shows whether both keys are detected
 
 ### 4. Generate
 
-Start the server (if not already running):
+**Option A — direct CLI (no server):**
+
+```bash
+cd backend
+python generate.py "Carousell" --max-sources 20
+```
+
+Prints QA warnings/errors and the written JSON path. Exits 1 (nothing written)
+if the QA gate fails. `--content-dir` overrides `CONTENT_DIR` for a single run.
+
+**Option B — server + curl.** Start the server (if not already running):
 
 ```bash
 uvicorn app.main:app --reload        # http://localhost:8000/docs
@@ -79,7 +89,13 @@ curl -X POST localhost:8000/generate \
 >`max_sources` is the number of search results returned by firecrawl and can vary (up to 100). Recommended to keep it at 20 as it's a good balance between resourcefulness and cost.
 
 The pipeline runs (research can take ~5 minutes — it scrapes and reads several
-articles) and writes `web/content/breakdowns/carousell.json`.
+articles) and writes `<slug>.json` to `CONTENT_DIR`.
+
+> **Publishing to the NextBigThing website:** set
+> `CONTENT_DIR=/path/to/NextBigThing/content/blog` in `backend/.env` so posts land
+> in the website repo. Review/hand-edit the JSON, then commit + deploy the website
+> to publish. Leave `CONTENT_DIR` unset to write to the local preview app
+> (`web/content/breakdowns/`) instead.
 
 **Response:**
 ```json
