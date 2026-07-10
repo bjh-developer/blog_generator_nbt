@@ -47,6 +47,7 @@ Open `.env` and fill in the two keys. The defaults for everything else work:
 OPENROUTER_API_KEY=sk-or-...        # required
 FIRECRAWL_API_KEY=fc-...            # required
 PROMPT_CACHE=0                      # 0 = always generate fresh (recommended while iterating)
+CONTENT_DIR=/path/to/NextBigThing/content/blog # required, make sure content_dir is pointed to NextBigThing repo that contains the live code, e.g. /Users/USERNAME/NextBigThing/content/blog
 ```
 
 > **Tip:** leave `PROMPT_CACHE=0` while you're testing. With caching on, regenerating
