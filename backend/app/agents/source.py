@@ -144,24 +144,41 @@ class _BatchResult(BaseModel):
     labels: dict[str, str] = {}
 
 
-_CLASSIFY_SYS = (
-    "You triage business-news articles for a story blog. For EACH numbered "
-    "article (title + lead) assign exactly one label:\n"
-    "- success: a company/founder success narrative (growth, breakout funding, "
-    "market win, turnaround).\n"
-    "- cautionary: a failure / lessons-learnt narrative (shutdown, pivot, scandal, "
-    "post-mortem, what-went-wrong).\n"
-    "- reject: routine/neutral/PR/listicle/price-update coverage, no narrative arc.\n\n"
-    'Respond ONLY as JSON mapping each index to its label, e.g.:\n'
-    '{"labels": {"0": "success", "1": "reject", "2": "cautionary"}}\n'
-    "Include every index exactly once. Use only those three label words."
-)
+def _classify_sys(target: str) -> str:
+    """Triage prompt bound to the TARGET company so wrong-entity results (other
+    orgs sharing the name) are rejected and on-target factual sources kept."""
+    return (
+        "You triage web search results for a research blog about ONE specific company.\n"
+        f"TARGET COMPANY: {target}\n\n"
+        "Search results often include DIFFERENT organizations or people that merely "
+        "share the name — those must be rejected. For EACH numbered result "
+        "(title + lead) assign exactly one label:\n"
+        "- success: genuinely about the TARGET company and carries useful facts or "
+        "story (funding, founders/background, origin, product launches, growth, "
+        "market win, milestones, a substantive company profile).\n"
+        "- cautionary: about the TARGET company but a failure/lessons narrative "
+        "(shutdown, pivot, scandal, layoffs, post-mortem, what-went-wrong).\n"
+        "- reject: a DIFFERENT company or person that only shares the name, OR not "
+        "substantive about the target (job listing, bare social/profile page, "
+        "unrelated listicle, pure price update).\n\n"
+        "Prefer keeping a result when it is clearly about the target and adds facts; "
+        "only reject when it is off-target or carries no usable information.\n\n"
+        'Respond ONLY as JSON mapping each index to its label, e.g.:\n'
+        '{"labels": {"0": "success", "1": "reject", "2": "cautionary"}}\n'
+        "Include every index exactly once. Use only those three label words."
+    )
+
 
 _VALID = {"success", "cautionary", "reject"}
 
 
-async def _classify_batch(items: list[tuple[int, str, str]]) -> dict[int, _Classification]:
-    """items: (index, title, lead). One LLM call. Returns index -> classification."""
+async def _classify_batch(items: list[tuple[int, str, str]],
+                          target: str) -> dict[int, _Classification]:
+    """items: (index, title, lead). One LLM call. Returns index -> classification.
+
+    `target` is the company being researched — without it the model cannot tell
+    on-target sources from same-name impostors.
+    """
     if not items:
         return {}
     blocks = [f"[{idx}] TITLE: {title}\nLEAD: {lead[:500]}" for idx, title, lead in items]
@@ -169,8 +186,12 @@ async def _classify_batch(items: list[tuple[int, str, str]]) -> dict[int, _Class
     out: dict[int, _Classification] = {}
     try:
         result = await gateway.complete_json(
-            _CLASSIFY_SYS, user, _BatchResult,
-            role="fast",   # tiny triage task — never a slow reasoning model
+            _classify_sys(target), user, _BatchResult,
+            # ONE batched call per pipeline (not high-volume), and disambiguating
+            # same-name companies needs real judgment — the tiny fast model keeps
+            # wrong-entity results, so use the stronger general model here.
+            role="general",
+            temperature=0.0,   # deterministic triage
         )
         for k, v in result.labels.items():
             label = v.strip().lower() if isinstance(v, str) else "reject"
@@ -226,7 +247,8 @@ async def gather(query: str, max_sources: int = 8) -> tuple[list[Source], str]:
     # 2) ONE batch classify call for all prepared candidates (saves RPM budget)
     log.info("batch-classifying %d candidates in one call", len(prepared))
     cls_map = await _classify_batch(
-        [(i, p["title"], p["text"][:800]) for i, p in enumerate(prepared)]
+        [(i, p["title"], p["text"][:800]) for i, p in enumerate(prepared)],
+        target=query,
     )
 
     # 3) keep non-reject up to max_sources

@@ -19,20 +19,33 @@ CONTENT_DIR = Path(os.getenv("CONTENT_DIR", BASE_DIR.parent / "web" / "content" 
 for _p in (DATA_DIR, CACHE_DIR):
     _p.mkdir(parents=True, exist_ok=True)
 
-# --- LLM (OpenRouter) ------------------------------------------------------
+# --- LLM providers ---------------------------------------------------------
+# Active roles run on Cloudflare Workers AI (model ids prefixed "@cf/").
+# Fallback stays on OpenRouter for cross-provider failover.
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_BASE = os.getenv("OPENROUTER_BASE", "https://openrouter.ai/api/v1")
-# Free models (June 2026). Override per-role via env.
-# fast: cheap small model for triage/classify (NOT a reasoning model — those are slow)
-MODEL_FAST = os.getenv("MODEL_FAST", "meta-llama/llama-3.3-70b-instruct:free")
-MODEL_GENERAL = os.getenv("MODEL_GENERAL", "deepseek/deepseek-chat-v3-0324:free")
-MODEL_REASONING = os.getenv("MODEL_REASONING", "deepseek/deepseek-r1:free")
-MODEL_FALLBACK = os.getenv("MODEL_FALLBACK", "meta-llama/llama-3.3-70b-instruct:free")
+CF_ACCOUNT_ID = os.getenv("CF_ACCOUNT_ID", "")
+CF_API_TOKEN = os.getenv("CF_API_TOKEN", "")
+
+# Cloudflare Workers AI models (June 2026). Override per-role via env.
+# fast: small model for triage/classify (NOT a reasoning model — those are slow)
+MODEL_FAST = os.getenv("MODEL_FAST", "@cf/meta/llama-3.2-3b-instruct")
+MODEL_GENERAL = os.getenv("MODEL_GENERAL", "@cf/mistralai/mistral-small-3.1-24b-instruct")
+# editorial: prose-critical single call — bigger model worth it. Runs free-form
+# (structured=False) because 70b's constrained-JSON decode is too slow (~99s).
+MODEL_EDITORIAL = os.getenv("MODEL_EDITORIAL", "@cf/meta/llama-3.3-70b-instruct-fp8-fast")
+# reasoning tier retired — alias to general so any stray role="reasoning" works
+MODEL_REASONING = os.getenv("MODEL_REASONING", MODEL_GENERAL)
+# fallback stays on OpenRouter (different provider) for failover
+MODEL_FALLBACK = os.getenv("MODEL_FALLBACK", "openrouter/owl-alpha")
 
 # Free tier: 20 requests/min cap.
 LLM_RPM = int(os.getenv("LLM_RPM", "18"))          # headroom under 20
 LLM_TIMEOUT = float(os.getenv("LLM_TIMEOUT", "90"))
 LLM_MAX_RETRIES = int(os.getenv("LLM_MAX_RETRIES", "5"))
+# Cloudflare's default max_tokens is small (~256) and silently truncates long
+# JSON — set generously so multi-section research/editorial output isn't cut off.
+LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
 PROMPT_CACHE = os.getenv("PROMPT_CACHE", "1") == "1"
 # Structured outputs (json_schema) at decode time. On by default — DeepSeek V3
 # and Llama 3.3 70B both support it on OpenRouter. Set LLM_JSON_SCHEMA=0 in

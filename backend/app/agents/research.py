@@ -43,6 +43,10 @@ async def _extract_one(text: str, url: str) -> dict:
         rd = await gateway.complete_json(
             _SYS, f"SOURCE_URL: {url}\n\nARTICLE:\n{text[:16000]}",
             ResearchDoc, role="general",
+            # Free-form + repair: full-length constrained-JSON decode on Cloudflare
+            # is ~90s/call (13 of these run in parallel) and would time out. The
+            # prompt already specifies the shape; structured=True truncates here.
+            structured=False,
         )
         return rd.model_dump()
     except gateway.LLMError as e:
