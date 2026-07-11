@@ -29,7 +29,7 @@ export default function BreakdownsIndex() {
                 className="group rounded-3xl border border-ink/10 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md"
               >
                 <p className="text-xs font-bold uppercase tracking-widest text-purple">
-                  {s.meta.volume} · {s.meta.category_tag}
+                  {s.meta.volume}
                 </p>
                 <h2 className="mt-3 font-display text-2xl font-extrabold">{s.meta.startup_name}</h2>
                 <p className="mt-2 line-clamp-3 text-ink/70">{s.hero.subheadline}</p>

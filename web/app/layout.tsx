@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={atkinson.variable}>
+    <html lang="en" className={atkinson.variable} data-scroll-behavior="smooth">
       <body className="font-body antialiased">{children}</body>
     </html>
   );

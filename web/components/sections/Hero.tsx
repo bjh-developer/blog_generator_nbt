@@ -27,8 +27,8 @@ function accentize(line: string, orange?: string | null, purple?: string | null)
 
 function StatCard({ value, label }: { value: string; label: string }) {
   return (
-    <div className="flex flex-col items-center border-r border-ink/10 px-4 py-3 last:border-r-0">
-      <span className="font-display text-2xl font-extrabold sm:text-3xl">{value}</span>
+    <div className="flex flex-col items-center rounded-2xl border border-ink/10 bg-white px-4 py-3 shadow-sm sm:flex-1 sm:rounded-none sm:border-0 sm:border-r sm:border-ink/10 sm:shadow-none sm:last:border-r-0">
+      <span className="font-display text-2xl font-extrabold tabular-nums sm:text-3xl">{value}</span>
       <span className="mt-1 text-center text-[11px] font-semibold uppercase tracking-wide text-ink/60">
         {label}
       </span>
@@ -73,7 +73,7 @@ export function Hero({ hero, eyebrow }: { hero: HeroT; eyebrow: string }) {
 
       {hero.stat_bar.length > 0 && (
         <div
-          className={`mx-auto mt-10 flex max-w-2xl flex-wrap justify-center rounded-2xl border border-ink/10 bg-white shadow-sm transition-all duration-700 ${
+          className={`mx-auto mt-10 grid max-w-2xl grid-cols-2 gap-3 transition-all duration-700 sm:flex sm:gap-0 sm:overflow-hidden sm:rounded-2xl sm:border sm:border-ink/10 sm:bg-white sm:shadow-sm ${
             shown ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
           }`}
         >

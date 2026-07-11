@@ -11,6 +11,7 @@ from pathlib import Path
 from app import config, qa
 from app.agents import editorial, research, source
 from app.schemas import StoryBrief
+from typing import List, Tuple
 
 log = logging.getLogger("app.pipeline")
 
@@ -23,7 +24,19 @@ def write_story(sb: StoryBrief) -> Path:
     return p
 
 
-async def generate(query: str, max_sources: int = 8) -> StoryBrief:
+def _next_volume(slug: str) -> str:
+    """Return next Vol. NN, reusing existing number if slug already written."""
+    existing = list(config.CONTENT_DIR.glob("*.json"))
+    slugs = [p.stem for p in existing]
+    if slug in slugs:
+        # regeneration — reuse the same ordinal (position in sorted list)
+        idx = sorted(slugs).index(slug) + 1
+    else:
+        idx = len(existing) + 1
+    return f"Vol. {idx:02d}"
+
+
+async def generate(query: str, max_sources: int = 8) -> Tuple[StoryBrief, List[str], List[str]]:
     log.info("▶ pipeline start query=%r", query)
     sources, _arc = await source.gather(query, max_sources=max_sources)
     log.info("▶ source done: %d sources", len(sources))
@@ -32,6 +45,7 @@ async def generate(query: str, max_sources: int = 8) -> StoryBrief:
     log.info("▶ research done")
 
     sb = await editorial.build(rd, sources)
+    sb.meta.volume = _next_volume(sb.meta.slug)
 
     errors, warnings = qa.split(qa.audit(sb))
     if errors:

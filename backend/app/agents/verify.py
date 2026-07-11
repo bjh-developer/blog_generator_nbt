@@ -14,7 +14,7 @@ from pydantic import BaseModel
 
 from app import config
 from app.llm import gateway
-from app.schemas import Metric
+from app.schemas import FundingRound, Metric
 
 log = logging.getLogger("app.agents.verify")
 
@@ -45,9 +45,54 @@ def ground_score(claim: str, text: str) -> float:
     return round(best, 3)
 
 
-def filter_metrics(metrics: list[Metric], text: str, threshold: float = None) -> list[Metric]:
+def filter_metrics(metrics: list[Metric], text: str, threshold: float | None = None) -> list[Metric]:
     t = config.VERIFY_THRESHOLD if threshold is None else threshold
     return [m for m in metrics if ground_score(f"{m.value} {m.label}", text) >= t]
+
+
+class _Keep(BaseModel):
+    keep_indices: list[int] = []
+
+
+_FUNDING_SYS = (
+    "You are a fact-checker for a startup research pipeline. "
+    "Given a company's context and a numbered list of funding rounds, return the indices "
+    "of rounds that are chronologically and logically plausible. "
+    "Drop any round whose date predates the company's founding, falls in an impossible year "
+    "(e.g. before the founders were born or before the relevant technology existed), "
+    "or is otherwise clearly a data error. "
+    "When unsure, keep the round. "
+    'Return ONLY JSON: {"keep_indices": [...]}'
+)
+
+
+async def semantic_filter_funding(
+    funding: list[FundingRound],
+    startup_name: str,
+    context: str,
+) -> list[FundingRound]:
+    """Drop funding rounds that are chronologically impossible given company context.
+
+    Fail-open: if the LLM call fails, returns the original list unchanged.
+    """
+    if not funding:
+        return funding
+    listing = "\n".join(
+        f"[{i}] {f.round} date={f.date or 'unknown'} amount={f.amount_usd}"
+        for i, f in enumerate(funding)
+    )
+    user_msg = f"COMPANY: {startup_name}\n\nCONTEXT:\n{context[:800]}\n\nFUNDING ROUNDS:\n{listing}"
+    try:
+        r = await gateway.complete_json(_FUNDING_SYS, user_msg, _Keep, role="fast")
+        valid = [i for i in r.keep_indices if 0 <= i < len(funding)]
+        kept = [funding[i] for i in valid]
+        dropped = len(funding) - len(kept)
+        if dropped:
+            log.info("semantic_filter_funding: dropped %d/%d rounds for %s",
+                     dropped, len(funding), startup_name)
+        return kept
+    except gateway.LLMError:
+        return funding
 
 
 class _Rel(BaseModel):

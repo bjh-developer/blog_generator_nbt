@@ -291,14 +291,21 @@ _SYS = (
     "ambitious 18-28 year olds (First Round Review meets Packy McCormick). Not a press "
     "release, not academic.\n\n"
     "RULES:\n"
-    "- Hero headline: two short, punchy lines (line1 + line2), each <= 6 words. Make "
-    "it catchy and attractive — a hook, not a formula. Pick accent_word_orange (and "
-    "optionally accent_word_purple) from a striking word in the headline.\n"
-    "- Reduce the use of 'not x but y' antithesis sentence structure "
-    "(e.g. [Company] didn't build [literal/expected thing]. They built "
-    "[abstract/emotional thing] over [literal thing it's compared to].).\n"
+    "- Hero headline: a question that is the central editorial question the whole breakdown "
+    "answers. Split it naturally across two lines (line1 + line2) — break at a phrase "
+    "boundary, not mid-word. Format: 'How/Why did [Company] [verb phrase]?' "
+    "Examples: 'How did Framer turn a design tool / into a system for shipping websites?', "
+    "'Why do you see ShopBack / at almost every store in Singapore?', "
+    "'How did Luma turn an event hosting tool / into a system for communities?' "
+    "Pick accent_word_orange (and optionally accent_word_purple) from a striking word in "
+    "the question.\n"
     "- WRITE TIGHT. Every narrative field is prose, not bullets, and <= 3 sentences "
     "(~60 words max). subheadline <= 20 words. Cut every word that isn't carrying weight.\n"
+    "- NO JARGON. Write like you're texting a smart friend, not pitching a VC. "
+    "Ban: 'leverage', 'ecosystem', 'seamlessly', 'robust', 'scalable', 'synergy', "
+    "'solution', 'space' (as in 'in the X space'), 'value proposition', 'pain point', "
+    "'go-to-market', 'disrupt'. Use plain words instead: use 'use' not 'leverage', "
+    "'customers' not 'end users', 'built' not 'developed a solution for'.\n"
     "- PRIORITIZE the story young founders care about: founder background and what they "
     "did before, how the company actually started (origin), and what the FIRST version "
     "of the product looked like. Put this into founder_mode_narrative.\n"
@@ -310,7 +317,9 @@ _SYS = (
     "- NEVER invent stats, names, or quotes not in the research. If unsupported, leave "
     "the field empty/null.\n"
     "- lesson headlines must be specific to THIS company, contrarian or surprising. "
-    "Lesson body <= 2 sentences.\n"
+    "Lesson body <= 2 sentences. applicable_to = short audience tag, 3-5 words max "
+    "(e.g. 'B2B marketplace founders', 'pre-revenue teams', 'consumer app builders'). "
+    "NOT a sentence, NOT a question.\n"
     "- timeline_events: 4-6 KEY MILESTONES in the company's journey (founding, first "
     "product, pivots, major funding, breakout growth). Each heading <= 6 words; body "
     "one sentence. Use varied kinds (founder_story/product/funding/inflection/"
@@ -476,6 +485,11 @@ async def build(rd: ResearchDoc, sources: List[Source]) -> StoryBrief:
         rd.funding = clean_funding(rd.funding)
         if len(rd.funding) != before:
             log.info("funding cleaned: %d -> %d rounds", before, len(rd.funding))
+        if rd.funding:
+            context = "\n".join(filter(None, [rd.origin_story,
+                                              *[e.event for e in rd.timeline[:6]]]))
+            rd.funding = await verify.semantic_filter_funding(
+                rd.funding, rd.startup_name, context)
 
     # relevance + grounding gates (the key problem)
     if rd.metrics and corpus:
