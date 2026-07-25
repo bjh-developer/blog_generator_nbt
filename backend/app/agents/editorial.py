@@ -134,6 +134,7 @@ def funding_rounds(rd: ResearchDoc) -> List[FundingRoundView]:
             label=f.round, date=f.date,
             amount=(_fmt_usd(f.amount_usd) if f.amount_usd else None),
             valuation=(_fmt_usd(f.valuation_usd) if f.valuation_usd else None),
+            source=f.source,
         ))
     return out
 
@@ -148,6 +149,8 @@ def clean_funding(funding: list) -> list:
 
     1. drop junk-label rounds (empty / 'unspecified' / 'multiple rounds')
     2. dedupe by (label sans trailing '(YYYY)', year), backfilling amount/val/investors
+       ONLY from a donor row that shares the same source (never weld a foreign
+       amount from a different article onto a round — that scrambles the facts)
     3. drop rounds with no amount (can't be charted, clutter the list)
     4. sort chronologically
     """
@@ -160,6 +163,15 @@ def clean_funding(funding: list) -> list:
             continue
         kept.append(f)
 
+    def _can_backfill(keep, donor) -> bool:
+        # Block welding an amount onto a round that came from a KNOWN, DIFFERENT
+        # article — that is how label↔year↔amount gets scrambled. Allow when the
+        # kept round has no source of its own (nothing to contradict) or the
+        # donor shares its source url.
+        ku = (getattr(keep.source, "url", None) or "").strip()
+        du = (getattr(donor.source, "url", None) or "").strip()
+        return (not ku) or (ku == du)
+
     by_key: dict = {}
     order: list = []
     for f in kept:
@@ -170,10 +182,11 @@ def clean_funding(funding: list) -> list:
             order.append(key)
         else:
             k = by_key[key]
-            if not k.amount_usd and f.amount_usd:
-                k.amount_usd = f.amount_usd
-            if not k.valuation_usd and f.valuation_usd:
-                k.valuation_usd = f.valuation_usd
+            if _can_backfill(k, f):
+                if not k.amount_usd and f.amount_usd:
+                    k.amount_usd = f.amount_usd
+                if not k.valuation_usd and f.valuation_usd:
+                    k.valuation_usd = f.valuation_usd
             if not k.investors and f.investors:
                 k.investors = f.investors
     deduped = [by_key[k] for k in order]
@@ -316,7 +329,16 @@ _SYS = (
     "leave empty if the research doesn't support it.\n"
     "- NEVER invent stats, names, or quotes not in the research. If unsupported, leave "
     "the field empty/null.\n"
-    "- lesson headlines must be specific to THIS company, contrarian or surprising. "
+    "- core_insight_statement must name a NON-OBVIOUS causal mechanism or strategic choice "
+    "that explains WHY the company worked — not a restatement of a fact and not a tautology. "
+    "BAD (a dud): 'He didn't need the company to get rich, he was already rich' (restates a "
+    "fact, explains nothing). GOOD: 'They made listing an item feel like posting a story, so "
+    "casual users became habitual sellers.'\n"
+    "- lesson headlines must be specific to THIS company, contrarian or surprising — but NEVER "
+    "unethical, dangerous, or absurd, and never a mere restatement. Lessons must be advice a "
+    "responsible mentor would give a young founder: ethical, legal, constructive, and "
+    "generalisable to the audience. Do NOT frame harmful or relationship-destroying events "
+    "(e.g. being disowned, burning bridges) as things to pursue. "
     "Lesson body <= 2 sentences. applicable_to = short audience tag, 3-5 words max "
     "(e.g. 'B2B marketplace founders', 'pre-revenue teams', 'consumer app builders'). "
     "NOT a sentence, NOT a question.\n"

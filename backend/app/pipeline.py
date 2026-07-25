@@ -8,8 +8,8 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from app import config, qa
-from app.agents import editorial, research, source
+from app import config, qa, store
+from app.agents import editorial, judge, research, source
 from app.schemas import StoryBrief
 from typing import List, Tuple
 
@@ -59,8 +59,16 @@ async def generate(query: str, max_sources: int = 8) -> Tuple[StoryBrief, List[s
             return sb, errors, warnings
         log.info("▶ QA auto-repair succeeded")
 
+    # LLM judge: advisory quality/safety/factuality review (flag-for-human).
+    # Fail-open — never blocks the write. Warnings join the qa warnings channel.
+    corpus = "\n".join(store.read_cached_text(s.raw_text_ref) for s in sources)
+    judge_warnings = await judge.review(sb, corpus)
+    if judge_warnings:
+        log.warning("▶ judge flagged %d issue(s): %s", len(judge_warnings), judge_warnings)
+    warnings = warnings + judge_warnings
+
     if warnings:
-        log.warning("▶ QA warnings (advisory, %d): %s", len(warnings), warnings)
+        log.warning("▶ warnings (advisory, %d): %s", len(warnings), warnings)
     log.info("▶ QA audit clean (no errors)")
     write_story(sb)
     log.info("▶ pipeline complete slug=%s confidence=%.2f", sb.meta.slug, sb.overall_confidence)

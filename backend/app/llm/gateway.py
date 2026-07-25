@@ -54,10 +54,16 @@ class _RateLimiter:
 
     def __init__(self, rpm: int):
         self.min_interval = 60.0 / max(1, rpm)
-        self._lock = asyncio.Lock()
+        # Created lazily on first acquire so the Lock binds to the RUNNING loop.
+        # (On Python 3.9, an asyncio.Lock built at import time binds to the
+        # import-time loop and then errors under a fresh asyncio.run() loop —
+        # "got Future attached to a different loop".)
+        self._lock: asyncio.Lock | None = None
         self._last = 0.0
 
     async def acquire(self) -> None:
+        if self._lock is None:
+            self._lock = asyncio.Lock()
         async with self._lock:
             now = time.monotonic()
             wait = self.min_interval - (now - self._last)
@@ -138,13 +144,21 @@ def _repair_candidates(raw: str) -> list[tuple[str, str]]:
     return [("extract", s0), ("cleanup", s2), ("sanitize", s4), ("balance", s3)]
 
 
-def _build_body(model, messages, json_mode, temperature, json_schema, sampling):
+def _build_body(model, messages, json_mode, temperature, json_schema, sampling,
+                reasoning=None):
     body: dict = {"model": model, "messages": messages, "temperature": temperature,
                   "max_tokens": config.LLM_MAX_TOKENS}
     # optional sampling knobs (top_p, frequency_penalty, presence_penalty, ...)
     for k, v in (sampling or {}).items():
         if v is not None:
             body[k] = v
+    # Reasoning control (OpenRouter only; `@cf/*` would reject the field).
+    # Default OFF: reasoning models (e.g. nemotron) otherwise leak chain-of-thought
+    # prose into the message content and break JSON parsing. Callers that WANT
+    # reasoning (the judge) pass e.g. {"enabled": True, "exclude": True} so the
+    # model reasons internally but reasoning tokens stay out of the content.
+    if not model.startswith("@cf/"):
+        body["reasoning"] = reasoning if reasoning is not None else {"enabled": False}
     # Step 1 (prevention): force JSON at decode time. Prefer structured outputs
     # (json_schema) when enabled; otherwise basic json_object mode.
     if json_schema is not None and config.LLM_JSON_SCHEMA:
@@ -164,13 +178,15 @@ async def _call_model(
     temperature: float,
     json_schema: Optional[dict] = None,
     sampling: Optional[dict] = None,
+    reasoning: Optional[dict] = None,
 ) -> str:
     """Single model: build body, hit its provider, retry on 429/transient."""
-    body = _build_body(model, messages, json_mode, temperature, json_schema, sampling)
+    body = _build_body(model, messages, json_mode, temperature, json_schema, sampling,
+                       reasoning)
     url, headers = _provider_for(model)
 
     cache_key = json.dumps({"m": model, "b": messages, "t": temperature,
-                            "s": sampling or {}}, sort_keys=True)
+                            "s": sampling or {}, "r": reasoning or {}}, sort_keys=True)
     cached = store.prompt_cache_get(cache_key)
     if cached is not None:
         log.debug("cache hit model=%s", model)
@@ -219,12 +235,13 @@ async def _raw_call(
     temperature: float,
     json_schema: Optional[dict] = None,
     sampling: Optional[dict] = None,
+    reasoning: Optional[dict] = None,
 ) -> str:
     """Try the role's model; on exhaustion fail over once to MODEL_FALLBACK."""
     primary = model_for(role)
     try:
         return await _call_model(primary, messages, json_mode, temperature,
-                                 json_schema, sampling)
+                                 json_schema, sampling, reasoning)
     except LLMError as e:
         fallback = config.MODEL_FALLBACK
         if not fallback or fallback == primary:
@@ -232,7 +249,7 @@ async def _raw_call(
         log.warning("primary model=%s failed (%s) — failing over to fallback=%s",
                     primary, e, fallback)
         return await _call_model(fallback, messages, json_mode, temperature,
-                                 json_schema, sampling)
+                                 json_schema, sampling, reasoning)
 
 
 async def complete_text(
@@ -241,11 +258,12 @@ async def complete_text(
     role: Role = "general",
     temperature: float = 0.3,
     sampling: Optional[dict] = None,
+    reasoning: Optional[dict] = None,
 ) -> str:
     messages = [{"role": "system", "content": system},
                 {"role": "user", "content": user}]
     return await _raw_call(messages, role, json_mode=False, temperature=temperature,
-                           sampling=sampling)
+                           sampling=sampling, reasoning=reasoning)
 
 
 def _try_parse(raw: str, schema: Type[T]) -> Optional[T]:
@@ -271,6 +289,7 @@ async def complete_json(
     temperature: float = 0.2,
     sampling: Optional[dict] = None,
     structured: bool = True,
+    reasoning: Optional[dict] = None,
 ) -> T:
     """Return a validated `schema` instance. Prevention (json mode/schema) +
     staged repair + reformat-retries.
@@ -279,12 +298,15 @@ async def complete_json(
     the repair pipeline. Use it for models whose decode-time JSON enforcement is
     pathologically slow (e.g. llama-3.3-70b on Cloudflare: ~99s constrained vs
     ~4s free-form), where the prompt already specifies the JSON shape.
+
+    `reasoning` overrides the OpenRouter reasoning config (default: disabled, so
+    reasoning models don't leak chain-of-thought prose into the JSON content).
     """
     json_schema = schema.model_json_schema() if structured else None
     messages = [{"role": "system", "content": system},
                 {"role": "user", "content": user}]
     raw = await _raw_call(messages, role, json_mode=structured, temperature=temperature,
-                          json_schema=json_schema, sampling=sampling)
+                          json_schema=json_schema, sampling=sampling, reasoning=reasoning)
     for attempt in range(2):
         result = _try_parse(raw, schema)
         if result is not None:
@@ -300,5 +322,5 @@ async def complete_json(
             ),
         })
         raw = await _raw_call(messages, role, json_mode=structured, temperature=0.0,
-                              json_schema=json_schema)
+                              json_schema=json_schema, reasoning=reasoning)
     raise LLMError("model could not produce schema-valid JSON")

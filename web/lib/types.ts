@@ -21,7 +21,7 @@ export interface TimelineSection { title: string; events: TimelineItem[]; }
 export interface LoopNode { label: string; sub: string; }
 export interface ProductLoop { title: string; nodes: LoopNode[]; center_label: string; caption: string; }
 export interface FundingPoint { label: string; value: number; unit?: string | null; date?: string | null; }
-export interface FundingRoundView { label: string; date: string; amount?: string | null; valuation?: string | null; signal: string; }
+export interface FundingRoundView { label: string; date: string; amount?: string | null; valuation?: string | null; signal: string; source?: SourceRef | null; }
 export interface FundingSection {
   title: string; narrative: string; rounds: FundingRoundView[];
   chart: FundingPoint[]; pricing_note?: string | null;

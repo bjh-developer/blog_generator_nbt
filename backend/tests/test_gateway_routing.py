@@ -30,7 +30,7 @@ def test_structured_false_sends_no_response_format(monkeypatch):
     captured = {}
 
     async def fake_call_model(model, messages, json_mode, temperature,
-                              json_schema=None, sampling=None):
+                              json_schema=None, sampling=None, reasoning=None):
         captured["json_mode"] = json_mode
         captured["json_schema"] = json_schema
         return '{"x": "y"}'
@@ -78,7 +78,7 @@ def test_raw_call_falls_back_to_fallback_model(monkeypatch):
     calls = []
 
     async def fake_call_model(model, messages, json_mode, temperature,
-                              json_schema=None, sampling=None):
+                              json_schema=None, sampling=None, reasoning=None):
         calls.append(model)
         if model.startswith("@cf/"):
             raise gateway.LLMError("cf down")
@@ -98,7 +98,7 @@ def test_raw_call_no_double_call_when_primary_is_fallback(monkeypatch):
     calls = []
 
     async def fake_call_model(model, messages, json_mode, temperature,
-                              json_schema=None, sampling=None):
+                              json_schema=None, sampling=None, reasoning=None):
         calls.append(model)
         raise gateway.LLMError("boom")
 

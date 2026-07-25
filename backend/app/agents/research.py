@@ -20,6 +20,11 @@ _SYS = (
     "entrepreneur blog. From the ARTICLE, extract ONLY verifiable, story-defining "
     "facts about the company. Set any field you cannot support to null/empty. "
     "Never invent numbers, names, dates, or quotes.\n\n"
+    "FUNDING — SPAN LOCK: a funding round's `round` (e.g. 'Series C'), `date`, and "
+    "`amount_usd` MUST come from the SAME sentence or quote. `source.quote` MUST literally "
+    "contain that amount. If the label, date, and amount are NOT stated together in one span, "
+    "leave the uncertain field null — NEVER pair a round label with an amount or year found "
+    "elsewhere in the text. A wrong Series↔year↔amount pairing is worse than a null.\n\n"
     "Return JSON matching this shape (omit unknowns, keep arrays you cannot fill empty):\n"
     '{"startup_name":"","tagline":null,"pivotal_insight":null,"origin_story":null,'
     '"timeline":[{"date":"YYYY","kind":"founder_story|product|funding|inflection|user_delight",'

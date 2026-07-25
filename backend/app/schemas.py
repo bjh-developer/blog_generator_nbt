@@ -181,6 +181,9 @@ class FundingRoundView(LenientModel):
     amount: Optional[str] = None
     valuation: Optional[str] = None
     signal: str = ""
+    # provenance carried through from the internal FundingRound so the amount
+    # can be traced/fact-checked (and optionally cited in the UI later)
+    source: Optional[SourceRef] = None
 
 
 class FundingSection(LenientModel):

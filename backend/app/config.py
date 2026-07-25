@@ -38,6 +38,9 @@ MODEL_EDITORIAL = os.getenv("MODEL_EDITORIAL", "@cf/meta/llama-3.3-70b-instruct-
 MODEL_REASONING = os.getenv("MODEL_REASONING", MODEL_GENERAL)
 # fallback stays on OpenRouter (different provider) for failover
 MODEL_FALLBACK = os.getenv("MODEL_FALLBACK", "openrouter/owl-alpha")
+# judge: reasoning-tier critic for the post-generation quality/safety/fact review.
+# Needs a live reasoning ':free' id — these rotate, so verify before relying on it.
+MODEL_JUDGE = os.getenv("MODEL_JUDGE", "nvidia/nemotron-3-super-120b-a12b:free")
 
 # Free tier: 20 requests/min cap.
 LLM_RPM = int(os.getenv("LLM_RPM", "18"))          # headroom under 20

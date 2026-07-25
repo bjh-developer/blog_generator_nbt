@@ -102,6 +102,40 @@ def test_clean_funding_backfills_amount_from_duplicate():
     assert out[0].amount_usd == 7_800_000            # backfilled before amount-less drop
 
 
+def test_clean_funding_does_not_weld_amount_across_sources():
+    from app.schemas import SourceRef
+    # kept round came from article A with no amount; a DIFFERENT article B reports
+    # an amount for the same (label, year). The foreign amount must NOT be welded on
+    # — that is exactly how Series/year/amount gets scrambled. Round has no amount → dropped.
+    funding = [
+        FundingRound(round="Series D", date="2016", amount_usd=None,
+                     source=SourceRef(url="https://a.com/x")),
+        FundingRound(round="Series D (2016)", date="2016", amount_usd=350_000_000,
+                     source=SourceRef(url="https://b.com/y")),
+    ]
+    assert editorial.clean_funding(funding) == []
+
+
+def test_clean_funding_backfills_within_same_source():
+    from app.schemas import SourceRef
+    funding = [
+        FundingRound(round="Series A", date="2014", amount_usd=None,
+                     source=SourceRef(url="https://x.com/a")),
+        FundingRound(round="Series A (2014)", date="2014", amount_usd=7_800_000,
+                     source=SourceRef(url="https://x.com/a")),
+    ]
+    out = editorial.clean_funding(funding)
+    assert len(out) == 1 and out[0].amount_usd == 7_800_000
+
+
+def test_editorial_prompt_has_insight_rubric_and_lesson_safety():
+    s = editorial._SYS.lower()
+    assert "non-obvious" in s          # insight rubric
+    assert "tautology" in s
+    assert "unethical" in s            # lesson safety guardrail
+    assert "disowned" in s
+
+
 def test_assemble_uses_llm_timeline_events_when_present():
     rd = ResearchDoc(startup_name="Luma")
     nar = _Narratives(hero_line1="a", hero_line2="b", timeline_events=[

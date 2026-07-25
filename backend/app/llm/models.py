@@ -5,7 +5,7 @@ from typing import Literal
 
 from .. import config
 
-Role = Literal["fast", "general", "editorial", "reasoning", "fallback"]
+Role = Literal["fast", "general", "editorial", "reasoning", "fallback", "judge"]
 
 
 def model_for(role: Role) -> str:
@@ -16,5 +16,6 @@ def model_for(role: Role) -> str:
         "editorial": config.MODEL_EDITORIAL,
         "reasoning": config.MODEL_REASONING,
         "fallback": config.MODEL_FALLBACK,
+        "judge": config.MODEL_JUDGE,
     }
     return by_role.get(role, config.MODEL_GENERAL)
