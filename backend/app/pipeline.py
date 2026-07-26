@@ -9,7 +9,7 @@ import logging
 from pathlib import Path
 
 from app import config, qa, store
-from app.agents import editorial, judge, research, source
+from app.agents import corrector, editorial, judge, research, source
 from app.schemas import StoryBrief
 from typing import List, Tuple
 
@@ -59,9 +59,22 @@ async def generate(query: str, max_sources: int = 8) -> Tuple[StoryBrief, List[s
             return sb, errors, warnings
         log.info("▶ QA auto-repair succeeded")
 
+    corpus = "\n".join(store.read_cached_text(s.raw_text_ref) for s in sources)
+
+    # Funding corrector: if funding rounds are sourced from low-authority pages,
+    # web-search authoritative sources and REPLACE them. Runs BEFORE the judge so
+    # the judge validates the corrected funding, not the stale rounds. Fail-open.
+    if sb.funding and sb.funding.rounds:
+        new_rounds, new_chart, corr_warnings = await corrector.correct_funding(
+            sb.meta.startup_name, sb.funding.rounds, sources)
+        if new_rounds is not None:
+            sb.funding.rounds = new_rounds
+            if new_chart is not None:
+                sb.funding.chart = new_chart
+        warnings = warnings + corr_warnings
+
     # LLM judge: advisory quality/safety/factuality review (flag-for-human).
     # Fail-open — never blocks the write. Warnings join the qa warnings channel.
-    corpus = "\n".join(store.read_cached_text(s.raw_text_ref) for s in sources)
     judge_warnings = await judge.review(sb, corpus)
     if judge_warnings:
         log.warning("▶ judge flagged %d issue(s): %s", len(judge_warnings), judge_warnings)

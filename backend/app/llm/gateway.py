@@ -210,7 +210,19 @@ async def _call_model(
                 await asyncio.sleep(wait)
                 continue
             r.raise_for_status()
-            content = r.json()["choices"][0]["message"]["content"]
+            data = r.json()
+            choices = data.get("choices")
+            if not choices:
+                # provider returned an error/empty body (no choices) — surface the
+                # real reason instead of a bare KeyError('choices')
+                err = data.get("error") or data
+                raise LLMError(f"no choices in response: {str(err)[:200]}")
+            msg = choices[0].get("message", {})
+            content = msg.get("content")
+            # A reasoning model may put everything in `reasoning` and leave content
+            # empty; fall back so we don't treat a valid answer as empty.
+            if not content:
+                content = msg.get("reasoning") or ""
             # Cloudflare json_schema mode returns content as a parsed object;
             # the repair/validation pipeline downstream expects a JSON string.
             if not isinstance(content, str):

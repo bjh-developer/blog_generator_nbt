@@ -528,6 +528,11 @@ async def build(rd: ResearchDoc, sources: List[Source]) -> StoryBrief:
         # the repetitive boilerplate cadence that flags LLM prose.
         nar = await gateway.complete_json(
             _SYS, _research_digest(rd), _Narratives,
+            # Free-form + repair (NOT schema-enforced): the large, creative
+            # _Narratives object truncates/errors under json_schema decode on this
+            # model. Repair handles the occasional malformed field, and reasoning is
+            # off so no chain-of-thought leaks. (Research extraction keeps structured
+            # decode — factual, and it was the real source of the JSON churn.)
             role="editorial", temperature=0.85, structured=False,
             sampling={"top_p": 0.92, "frequency_penalty": 0.5, "presence_penalty": 0.3},
         )

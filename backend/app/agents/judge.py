@@ -165,8 +165,24 @@ async def _factcheck_funding(sb: StoryBrief, corpus: str) -> list[str]:
         return []
     warns: list[str] = []
 
-    # 1) Deterministic grounding — does the amount even appear in the corpus?
-    #    Runs regardless of the judge model being available.
+    import re
+
+    def _digits(s: str) -> list[str]:
+        return re.findall(r"\d[\d,.]*", s or "")
+
+    # 1a) Deterministic: does each round's amount appear in its OWN cited quote?
+    #     Catches a fabricated quote or a quote that doesn't back the number.
+    for r in fs.rounds:
+        if not r.amount:
+            continue
+        quote = (r.source.quote if r.source else "") or ""
+        if quote:
+            nums = {n.replace(",", "") for n in _digits(r.amount)}
+            qnums = {n.replace(",", "") for n in _digits(quote)}
+            if nums and not (nums & qnums):
+                warns.append(f"funding: '{r.label} {r.date} {r.amount}' amount not in its cited quote — verify")
+
+    # 1b) Deterministic grounding — does the amount appear anywhere in the corpus?
     if corpus:
         for r in fs.rounds:
             if not r.amount:
@@ -175,13 +191,14 @@ async def _factcheck_funding(sb: StoryBrief, corpus: str) -> list[str]:
             if verify.ground_score(claim, corpus) < config.VERIFY_THRESHOLD:
                 warns.append(f"funding: '{r.label} {r.date} {r.amount}' amount not found in sources — verify")
 
-    # 2) LLM cross-check of label↔year↔amount consistency.
+    # 2) LLM cross-check of label↔year↔amount consistency (larger window so the
+    #    funding source isn't truncated away — the old 12k cap made this unreliable).
     if corpus:
         listing = "\n".join(
             f"[{i}] {r.label} | year={(r.date or '?')[:4]} | amount={r.amount or '?'}"
             for i, r in enumerate(fs.rounds)
         )
-        user = f"SOURCE EXCERPTS:\n{corpus[:12000]}\n\nFUNDING ROUNDS:\n{listing}"
+        user = f"SOURCE EXCERPTS:\n{corpus[:40000]}\n\nFUNDING ROUNDS:\n{listing}"
         try:
             res = await gateway.complete_json(_FUNDING_SYS, user, _FundingVerdicts,
                                               role="judge", temperature=_TEMP, reasoning=_REASONING)
