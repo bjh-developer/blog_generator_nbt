@@ -164,13 +164,13 @@ def clean_funding(funding: list) -> list:
         kept.append(f)
 
     def _can_backfill(keep, donor) -> bool:
-        # Block welding an amount onto a round that came from a KNOWN, DIFFERENT
-        # article — that is how label↔year↔amount gets scrambled. Allow when the
-        # kept round has no source of its own (nothing to contradict) or the
-        # donor shares its source url.
+        # Only backfill when both rows are known to come from the SAME article —
+        # anything else (including "kept has no known source") risks welding a
+        # foreign amount/valuation/investor list onto a round from a different
+        # article, which is how label/year/amount scrambling happens in production.
         ku = (getattr(keep.source, "url", None) or "").strip()
         du = (getattr(donor.source, "url", None) or "").strip()
-        return (not ku) or (ku == du)
+        return bool(ku) and bool(du) and ku == du
 
     by_key: dict = {}
     order: list = []
@@ -187,8 +187,8 @@ def clean_funding(funding: list) -> list:
                     k.amount_usd = f.amount_usd
                 if not k.valuation_usd and f.valuation_usd:
                     k.valuation_usd = f.valuation_usd
-            if not k.investors and f.investors:
-                k.investors = f.investors
+                if not k.investors and f.investors:
+                    k.investors = f.investors
     deduped = [by_key[k] for k in order]
 
     deduped = [f for f in deduped if f.amount_usd]

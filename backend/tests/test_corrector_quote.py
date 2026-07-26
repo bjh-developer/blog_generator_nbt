@@ -28,7 +28,10 @@ async def test_corrector_drops_rounds_not_backed_by_quote(monkeypatch):
 
     low = FundingRoundView(label="Series D", date="2016", amount="$350M",
                            source=SourceRef(url="https://blog.stackademic.com/x"))
-    rounds, chart, warns = await corrector.correct_funding("Grab", [low])
+    rounds, chart, evidence, warns = await corrector.correct_funding("Grab", [low])
     # nothing quote-verified → keep original (user chose flag over drop), warn
     assert rounds is None
     assert warns and "verify manually" in warns[0]
+    # a corpus WAS built and extraction attempted, even though nothing verified —
+    # still useful context for a downstream judge
+    assert evidence and "Grab completed Series A through H" in evidence

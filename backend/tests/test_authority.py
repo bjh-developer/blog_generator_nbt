@@ -18,3 +18,15 @@ def test_low_authority_blogs():
 def test_unknown_is_medium():
     assert authority("https://randomnews.example/story") == "med"
     assert authority("") == "med"
+
+
+def test_low_suffix_match_is_label_bounded():
+    # Unrelated domains that merely end with a low-authority domain's
+    # characters must NOT be treated as subdomains of it.
+    assert authority("cryptomedium.com") == "med"
+    assert authority("notsubstack.com") == "med"
+    # Genuine subdomains still correctly resolve to low, including the
+    # bytebridge.medium.com case (now covered via dot-bounded suffix match
+    # on medium.com rather than a redundant explicit entry).
+    assert authority("someone.medium.com") == "low"
+    assert authority("bytebridge.medium.com") == "low"

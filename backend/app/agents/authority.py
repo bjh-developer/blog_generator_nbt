@@ -22,12 +22,11 @@ _HIGH = {
 # Low authority for HARD facts: open-publishing blogs / forums where anyone can
 # post an unverified funding table. (Fine as narrative colour, not as a source
 # of truth for amounts.)
-_LOW_SUFFIXES = (
+_LOW = {
     "medium.com", "substack.com", "blogspot.com", "wordpress.com",
     "quora.com", "reddit.com", "tumblr.com", "hashnode.dev",
-    "stackademic.com", "bytebridge.medium.com",
-)
-_LOW_EXACT = {"medium.com", "substack.com"}
+    "stackademic.com",
+}
 
 
 def _domain(url_or_domain: str) -> str:
@@ -44,6 +43,6 @@ def authority(url_or_domain: str) -> str:
     # exact or subdomain match against the reputable set
     if any(d == h or d.endswith("." + h) for h in _HIGH):
         return "high"
-    if d in _LOW_EXACT or d.endswith(_LOW_SUFFIXES):
+    if any(d == h or d.endswith("." + h) for h in _LOW):
         return "low"
     return "med"

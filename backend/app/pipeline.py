@@ -47,39 +47,45 @@ async def generate(query: str, max_sources: int = 8) -> Tuple[StoryBrief, List[s
     sb = await editorial.build(rd, sources)
     sb.meta.volume = _next_volume(sb.meta.slug)
 
-    errors, warnings = qa.split(qa.audit(sb))
-    if errors:
-        # auto-repair the hard-error classes deterministically, then re-audit
-        log.warning("▶ QA found %d error(s), attempting auto-repair: %s", len(errors), errors)
-        sb = qa.repair(sb)
-        errors, warnings = qa.split(qa.audit(sb))
-        if errors:
-            log.error("▶ QA auto-repair INCOMPLETE — %d error(s) remain, not writing "
-                      "%s.json: %s", len(errors), sb.meta.slug, errors)
-            return sb, errors, warnings
-        log.info("▶ QA auto-repair succeeded")
-
     corpus = "\n".join(store.read_cached_text(s.raw_text_ref) for s in sources)
 
     # Funding corrector: if funding rounds are sourced from low-authority pages,
-    # web-search authoritative sources and REPLACE them. Runs BEFORE the judge so
-    # the judge validates the corrected funding, not the stale rounds. Fail-open.
+    # web-search authoritative sources and REPLACE them. Runs BEFORE the QA audit
+    # (so QA validates the corrected funding, not the stale rounds) and BEFORE
+    # the judge (so the judge validates the corrected funding too). Fail-open.
+    corr_warnings: List[str] = []
     if sb.funding and sb.funding.rounds:
-        new_rounds, new_chart, corr_warnings = await corrector.correct_funding(
+        new_rounds, new_chart, evidence, corr_warnings = await corrector.correct_funding(
             sb.meta.startup_name, sb.funding.rounds, sources)
         if new_rounds is not None:
             sb.funding.rounds = new_rounds
             if new_chart is not None:
                 sb.funding.chart = new_chart
-        warnings = warnings + corr_warnings
+        if evidence is not None:
+            corpus = corpus + "\n" + evidence
+
+    # QA audit: a final, deterministic consistency pass over the (now
+    # funding-corrected) story before it ships.
+    errors, qa_warnings = qa.split(qa.audit(sb))
+    if errors:
+        # auto-repair the hard-error classes deterministically, then re-audit
+        log.warning("▶ QA found %d error(s), attempting auto-repair: %s", len(errors), errors)
+        sb = qa.repair(sb)
+        errors, qa_warnings = qa.split(qa.audit(sb))
+        if errors:
+            log.error("▶ QA auto-repair INCOMPLETE — %d error(s) remain, not writing "
+                      "%s.json: %s", len(errors), sb.meta.slug, errors)
+            return sb, errors, corr_warnings + qa_warnings
+        log.info("▶ QA auto-repair succeeded")
 
     # LLM judge: advisory quality/safety/factuality review (flag-for-human).
-    # Fail-open — never blocks the write. Warnings join the qa warnings channel.
+    # Fail-open — never blocks the write. corpus may now include the corrector's
+    # authoritative evidence so freshly-verified funding isn't wrongly re-flagged.
     judge_warnings = await judge.review(sb, corpus)
     if judge_warnings:
         log.warning("▶ judge flagged %d issue(s): %s", len(judge_warnings), judge_warnings)
-    warnings = warnings + judge_warnings
 
+    warnings = corr_warnings + qa_warnings + judge_warnings
     if warnings:
         log.warning("▶ warnings (advisory, %d): %s", len(warnings), warnings)
     log.info("▶ QA audit clean (no errors)")

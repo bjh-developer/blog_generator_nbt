@@ -92,14 +92,16 @@ def test_funding_rounds_formats_billions():
     assert rv.valuation == "$31B"
 
 
-def test_clean_funding_backfills_amount_from_duplicate():
+def test_clean_funding_no_backfill_without_matching_source():
+    # Neither round has a source url, so there is nothing to prove they came
+    # from the same article. Backfill must NOT happen; the amount-less round
+    # is then dropped by the amount-less-drop step, leaving nothing.
     funding = [
         FundingRound(round="Series A", date="2014"),                  # no amount
         FundingRound(round="Series A (2014)", date="2014", amount_usd=7_800_000),
     ]
     out = editorial.clean_funding(funding)
-    assert len(out) == 1
-    assert out[0].amount_usd == 7_800_000            # backfilled before amount-less drop
+    assert out == []
 
 
 def test_clean_funding_does_not_weld_amount_across_sources():
@@ -126,6 +128,22 @@ def test_clean_funding_backfills_within_same_source():
     ]
     out = editorial.clean_funding(funding)
     assert len(out) == 1 and out[0].amount_usd == 7_800_000
+
+
+def test_clean_funding_does_not_weld_investors_across_sources():
+    from app.schemas import SourceRef
+    # kept round has its own amount (so it survives the amount-less drop) and a
+    # source url different from the donor's. The donor's investors must NOT be
+    # welded on, since that is the same foreign-provenance risk as amount/valuation.
+    funding = [
+        FundingRound(round="Series D", date="2016", amount_usd=350_000_000,
+                     investors=[], source=SourceRef(url="https://a.com/x")),
+        FundingRound(round="Series D (2016)", date="2016", investors=["Foo Capital"],
+                     source=SourceRef(url="https://b.com/y")),
+    ]
+    out = editorial.clean_funding(funding)
+    assert len(out) == 1
+    assert not out[0].investors           # foreign investors must not be welded on
 
 
 def test_editorial_prompt_has_insight_rubric_and_lesson_safety():
