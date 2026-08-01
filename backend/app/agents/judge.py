@@ -1,14 +1,11 @@
 """JudgeAgent: post-generation quality / safety / factuality review.
 
 A reasoning-tier LLM critic (role="judge") re-reads the assembled StoryBrief and
-flags weak insights, low-quality or UNSAFE lessons, weak closings, and funding
-rounds whose label+year+amount isn't supported by the source corpus. It does NOT
+flags weak insights, low-quality or UNSAFE lessons, and weak closings. It does NOT
 edit the story — it returns advisory WARNING strings that flow into the pipeline's
 qa_warnings so a human reviews the JSON before publishing (flag-for-human).
 
 Every judge call is fail-open: an LLM error yields no warnings, never a crash.
-A deterministic grounding pass (verify.ground_score) runs regardless of the judge
-model being up, so ungrounded funding amounts are caught even when the LLM is down.
 """
 from __future__ import annotations
 
@@ -17,8 +14,6 @@ import logging
 
 from pydantic import BaseModel
 
-from app import config
-from app.agents import verify
 from app.llm import gateway
 from app.schemas import StoryBrief
 
@@ -46,16 +41,6 @@ class _LessonVerdict(BaseModel):
 
 class _LessonVerdicts(BaseModel):
     verdicts: list[_LessonVerdict] = []
-
-
-class _FundingVerdict(BaseModel):
-    index: int
-    supported: bool = True
-    reason: str = ""
-
-
-class _FundingVerdicts(BaseModel):
-    verdicts: list[_FundingVerdict] = []
 
 
 # --- individual judges (each fail-open) ------------------------------------
@@ -148,71 +133,6 @@ async def _judge_closing(sb: StoryBrief) -> list[str]:
     return []
 
 
-_FUNDING_SYS = (
-    "You fact-check FUNDING rounds against SOURCE EXCERPTS. For EACH numbered round, "
-    "supported=true ONLY if the excerpts state that exact round label, that year, and "
-    "that amount TOGETHER. supported=false if the amount, year, or label appears to be "
-    "mismatched or is not backed by the excerpts (e.g. the excerpt says the $350M was a "
-    "different Series or a different year). "
-    'Return ONLY JSON: {"verdicts":[{"index":0,"supported":true,"reason":""}, ...]} '
-    "one entry per round, same indices."
-)
-
-
-async def _factcheck_funding(sb: StoryBrief, corpus: str) -> list[str]:
-    fs = sb.funding
-    if not fs or not fs.rounds:
-        return []
-    warns: list[str] = []
-
-    import re
-
-    def _digits(s: str) -> list[str]:
-        return re.findall(r"\d[\d,.]*", s or "")
-
-    # 1a) Deterministic: does each round's amount appear in its OWN cited quote?
-    #     Catches a fabricated quote or a quote that doesn't back the number.
-    for r in fs.rounds:
-        if not r.amount:
-            continue
-        quote = (r.source.quote if r.source else "") or ""
-        if quote:
-            nums = {n.replace(",", "") for n in _digits(r.amount)}
-            qnums = {n.replace(",", "") for n in _digits(quote)}
-            if nums and not (nums & qnums):
-                warns.append(f"funding: '{r.label} {r.date} {r.amount}' amount not in its cited quote — verify")
-
-    # 1b) Deterministic grounding — does the amount appear anywhere in the corpus?
-    if corpus:
-        for r in fs.rounds:
-            if not r.amount:
-                continue
-            claim = f"{r.amount} {r.label}"
-            if verify.ground_score(claim, corpus) < config.VERIFY_THRESHOLD:
-                warns.append(f"funding: '{r.label} {r.date} {r.amount}' amount not found in sources — verify")
-
-    # 2) LLM cross-check of label↔year↔amount consistency (larger window so the
-    #    funding source isn't truncated away — the old 12k cap made this unreliable).
-    if corpus:
-        listing = "\n".join(
-            f"[{i}] {r.label} | year={(r.date or '?')[:4]} | amount={r.amount or '?'}"
-            for i, r in enumerate(fs.rounds)
-        )
-        user = f"SOURCE EXCERPTS:\n{corpus[:40000]}\n\nFUNDING ROUNDS:\n{listing}"
-        try:
-            res = await gateway.complete_json(_FUNDING_SYS, user, _FundingVerdicts,
-                                              role="judge", temperature=_TEMP, reasoning=_REASONING)
-            for v in res.verdicts:
-                if 0 <= v.index < len(fs.rounds) and not v.supported:
-                    r = fs.rounds[v.index]
-                    msg = f"funding: '{r.label} {r.date} {r.amount}' {v.reason or 'label/year/amount mismatch'} — verify"
-                    if msg not in warns:
-                        warns.append(msg)
-        except gateway.LLMError:
-            pass
-    return warns
-
-
 # --- entry point -----------------------------------------------------------
 
 async def review(sb: StoryBrief, corpus: str) -> list[str]:
@@ -221,7 +141,6 @@ async def review(sb: StoryBrief, corpus: str) -> list[str]:
         _judge_insight(sb),
         _judge_lessons(sb),
         _judge_closing(sb),
-        _factcheck_funding(sb, corpus),
         return_exceptions=True,
     )
     warns: list[str] = []

@@ -19,3 +19,7 @@ def test_merge_empty_partials():
     doc = research._merge("Acme", [])
     assert doc.startup_name == "Acme"
     assert doc.timeline == []
+
+
+def test_research_prompt_has_origin_story_rubric():
+    assert "origin_story must capture" in research._SYS

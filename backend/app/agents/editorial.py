@@ -2,7 +2,7 @@
 
 Deterministic assembly (pure, tested) for data-shaped sections; one constrained
 LLM call writes the NBT-voice prose. Sections with no support are left None so
-the frontend omits them. Stats come only from grounded metrics/funding.
+the frontend omits them. Stats come only from grounded metrics.
 """
 from __future__ import annotations
 
@@ -18,9 +18,9 @@ from app.agents import verify
 from app.llm import gateway
 from app.schemas import (
     Closing, CompetitorSection, CoreInsight, FounderMode, FounderModeFact,
-    FundingPoint, FundingRoundView, FundingSection, Hero, LenientModel, LessonCard,
-    LoopNode, ProductLoop, QuadrantItem, ResearchDoc, Source, StatItem, StoryBrief,
-    StoryMeta, TimelineItem, TimelineSection,
+    Hero, LenientModel, LessonCard, LoopNode, ProductLoop, QuadrantItem,
+    ResearchDoc, Source, StatItem, StoryBrief, StoryMeta, TimelineItem,
+    TimelineSection,
 )
 
 log = logging.getLogger("app.agents.editorial")
@@ -30,16 +30,6 @@ log = logging.getLogger("app.agents.editorial")
 
 def slugify(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
-
-
-def funding_chart(rd: ResearchDoc) -> List[FundingPoint]:
-    pts: List[FundingPoint] = []
-    for f in rd.funding:
-        if f.amount_usd:
-            pts.append(FundingPoint(label=f.round, value=round(f.amount_usd / 1e6, 2),
-                                    unit="$M", date=f.date or None))
-    pts.sort(key=lambda p: p.date or "")
-    return pts
 
 
 # quantifier words -> symbol, applied to the front of a stat value
@@ -120,80 +110,6 @@ def timeline_items(rd: ResearchDoc, max_items: int = _TIMELINE_MAX) -> List[Time
     top.sort(key=lambda ey: ey[1] or "")
     return [TimelineItem(year=y, kind=e.kind, heading=e.event, body=e.significance)
             for e, y in top]
-
-
-def _fmt_usd(v: float) -> str:
-    """$1.5M / $85M / $1B / $3.2B — roll into billions at >= $1B."""
-    return f"${v/1e9:g}B" if v >= 1e9 else f"${v/1e6:g}M"
-
-
-def funding_rounds(rd: ResearchDoc) -> List[FundingRoundView]:
-    out: List[FundingRoundView] = []
-    for f in rd.funding:
-        out.append(FundingRoundView(
-            label=f.round, date=f.date,
-            amount=(_fmt_usd(f.amount_usd) if f.amount_usd else None),
-            valuation=(_fmt_usd(f.valuation_usd) if f.valuation_usd else None),
-            source=f.source,
-        ))
-    return out
-
-
-# labels signalling the round was guessed/inferred, not grounded — drop them
-_FUNDING_JUNK = ("unspecified", "multiple rounds", "implied", "estimated",
-                 "approx", "unconfirmed", "rumored", "rumoured", "tbd")
-
-
-def clean_funding(funding: list) -> list:
-    """Turn the research merge's noisy funding list into clean, chartable rounds.
-
-    1. drop junk-label rounds (empty / 'unspecified' / 'multiple rounds')
-    2. dedupe by (label sans trailing '(YYYY)', year), backfilling amount/val/investors
-       ONLY from a donor row that shares the same source (never weld a foreign
-       amount from a different article onto a round — that scrambles the facts)
-    3. drop rounds with no amount (can't be charted, clutter the list)
-    4. sort chronologically
-    """
-    kept = []
-    for f in funding:
-        lbl = (f.round or "").strip()
-        if not lbl:
-            continue
-        if any(j in lbl.lower() for j in _FUNDING_JUNK):
-            continue
-        kept.append(f)
-
-    def _can_backfill(keep, donor) -> bool:
-        # Only backfill when both rows are known to come from the SAME article —
-        # anything else (including "kept has no known source") risks welding a
-        # foreign amount/valuation/investor list onto a round from a different
-        # article, which is how label/year/amount scrambling happens in production.
-        ku = (getattr(keep.source, "url", None) or "").strip()
-        du = (getattr(donor.source, "url", None) or "").strip()
-        return bool(ku) and bool(du) and ku == du
-
-    by_key: dict = {}
-    order: list = []
-    for f in kept:
-        base = re.sub(r"\s*\(\d{4}\)$", "", f.round).strip().lower()
-        key = (base, (f.date or "")[:4])
-        if key not in by_key:
-            by_key[key] = f
-            order.append(key)
-        else:
-            k = by_key[key]
-            if _can_backfill(k, f):
-                if not k.amount_usd and f.amount_usd:
-                    k.amount_usd = f.amount_usd
-                if not k.valuation_usd and f.valuation_usd:
-                    k.valuation_usd = f.valuation_usd
-                if not k.investors and f.investors:
-                    k.investors = f.investors
-    deduped = [by_key[k] for k in order]
-
-    deduped = [f for f in deduped if f.amount_usd]
-    deduped.sort(key=lambda f: f.date or "")
-    return deduped
 
 
 # --- LLM narrative contract ------------------------------------------------
@@ -281,9 +197,6 @@ class _Narratives(LenientModel):
     loop_nodes: List[str] = Field(default_factory=list)
     loop_center: str = "NETWORK EFFECT"
     loop_caption: str = ""
-    funding_title: str = "Funding & growth"
-    funding_narrative: str = ""
-    pricing_note: Optional[str] = None
     competitor_title: Optional[str] = None
     competitor_framing: str = ""
     axis_x: str = ""
@@ -313,20 +226,23 @@ _SYS = (
     "Pick accent_word_orange (and optionally accent_word_purple) from a striking word in "
     "the question.\n"
     "- WRITE TIGHT. Every narrative field is prose, not bullets, and <= 3 sentences "
-    "(~60 words max). subheadline <= 20 words. Cut every word that isn't carrying weight.\n"
+    "(~60 words max) — EXCEPT founder_mode_narrative, which gets up to 5 (see its rule "
+    "below). subheadline <= 20 words. Cut every word that isn't carrying weight.\n"
     "- NO JARGON. Write like you're texting a smart friend, not pitching a VC. "
     "Ban: 'leverage', 'ecosystem', 'seamlessly', 'robust', 'scalable', 'synergy', "
     "'solution', 'space' (as in 'in the X space'), 'value proposition', 'pain point', "
     "'go-to-market', 'disrupt'. Use plain words instead: use 'use' not 'leverage', "
     "'customers' not 'end users', 'built' not 'developed a solution for'.\n"
-    "- PRIORITIZE the story young founders care about: founder background and what they "
-    "did before, how the company actually started (origin), and what the FIRST version "
-    "of the product looked like. Put this into founder_mode_narrative.\n"
-    "- funding & pricing answer TWO questions only: (1) funding_narrative = how they got "
-    "their INITIAL money — the first capital that got them going (grants, competitions, "
-    "angels, friends/family, seed/early backers). (2) pricing_note = how the product "
-    "EARNS money — the revenue model and how customers actually pay. Keep each tight; "
-    "leave empty if the research doesn't support it.\n"
+    "- founder_mode_narrative is the HEART of the piece — what a broke, uncertain "
+    "18-28 year old reads and thinks 'they were once where I am'. In <= 5 sentences, "
+    "cover in this order: what the founders did BEFORE, how the company actually "
+    "started (the origin moment), what the FIRST version of the product looked like, "
+    "how they got their FIRST money (grant, competition, savings, friends/family, a "
+    "first customer — the scrappy pre-VC capital), and what nearly broke them early "
+    "(the rejection, the doubt, the thing that almost ended it). Be concrete and "
+    "specific — name the amount, the competition, the rejection. NEVER glamorise: the "
+    "point is that it was hard and ordinary before it was big. Omit any part the "
+    "research doesn't support rather than inventing it.\n"
     "- NEVER invent stats, names, or quotes not in the research. If unsupported, leave "
     "the field empty/null.\n"
     "- core_insight_statement must name a NON-OBVIOUS causal mechanism or strategic choice "
@@ -342,6 +258,11 @@ _SYS = (
     "Lesson body <= 2 sentences. applicable_to = short audience tag, 3-5 words max "
     "(e.g. 'B2B marketplace founders', 'pre-revenue teams', 'consumer app builders'). "
     "NOT a sentence, NOT a question.\n"
+    "- closing_narrative must land ONE specific, resonant takeaway earned by THIS "
+    "story — not a summary of what was already said, not generic advice ('work hard', "
+    "'listen to users'), not a restatement of the lessons. Answer: what does this mean "
+    "for someone building something right now? pull_quote, if used, must be a real "
+    "quote from the research or a sharp line from the closing itself.\n"
     "- timeline_events: 4-6 KEY MILESTONES in the company's journey (founding, first "
     "product, pivots, major funding, breakout growth). Each heading <= 6 words; body "
     "one sentence. Use varied kinds (founder_story/product/funding/inflection/"
@@ -361,7 +282,7 @@ _SYS = (
     '"core_insight_title":"","core_insight_statement":"","core_insight_narrative":"",'
     '"timeline_title":"","timeline_events":[{"year":"","kind":"product","heading":"","body":""}],'
     '"loop_title":"","loop_nodes":["","","",""],"loop_center":"NETWORK EFFECT",'
-    '"loop_caption":"","funding_title":"","funding_narrative":"","pricing_note":"",'
+    '"loop_caption":"",'
     '"competitor_title":"","competitor_framing":"","axis_x":"","axis_y":"",'
     '"quadrants":[{"name":"","their_bet":"","the_gap":"","quadrant":"tr","winner":true}],'
     '"founder_mode_title":"","founder_mode_narrative":"",'
@@ -404,11 +325,6 @@ def _research_digest(rd: ResearchDoc) -> str:
         tl = _dedupe_keep_order([f"- {e.date} [{e.kind}] {e.event}: {e.significance}"
                                  for e in rd.timeline])[:10]
         parts.append("TIMELINE:\n" + "\n".join(tl))
-    if rd.funding:
-        parts.append("FUNDING (investors = where money came from):\n" + "\n".join(
-            f"- {f.round} {f.date} amount={f.amount_usd} val={f.valuation_usd}"
-            + (f" investors={', '.join(f.investors)}" if f.investors else "")
-            for f in rd.funding[:6]))
     if rd.metrics:
         parts.append("METRICS:\n" + "\n".join(f"- {m.label}: {m.value}" for m in rd.metrics[:8]))
     if rd.competitors:
@@ -456,13 +372,6 @@ def assemble(rd: ResearchDoc, nar: _Narratives, sources: List[Source],
                            nodes=[LoopNode(label=n) for n in nar.loop_nodes[:4]],
                            center_label=nar.loop_center, caption=nar.loop_caption)
 
-    chart = funding_chart(rd)
-    rounds = funding_rounds(rd)
-    funding = None
-    if chart or rounds:
-        funding = FundingSection(title=nar.funding_title, narrative=nar.funding_narrative,
-                                 rounds=rounds, chart=chart, pricing_note=nar.pricing_note)
-
     competitors = None
     if nar.quadrants:
         quads = [QuadrantItem(name=q.name, their_bet=q.their_bet, the_gap=q.the_gap,
@@ -491,7 +400,7 @@ def assemble(rd: ResearchDoc, nar: _Narratives, sources: List[Source],
 
     return StoryBrief(
         meta=meta, hero=hero, core_insight=core, timeline=timeline, product_loop=loop,
-        funding=funding, competitors=competitors, founder_mode=founder_mode,
+        competitors=competitors, founder_mode=founder_mode,
         lessons=lessons, closing=closing, sources=src_refs, overall_confidence=confidence,
     )
 
@@ -499,19 +408,6 @@ def assemble(rd: ResearchDoc, nar: _Narratives, sources: List[Source],
 async def build(rd: ResearchDoc, sources: List[Source]) -> StoryBrief:
     log.info("=== editorial: building story for %s ===", rd.startup_name)
     corpus = "\n".join(store.read_cached_text(s.raw_text_ref) for s in sources)
-
-    # clean the research merge's noisy funding into chartable rounds; an empty
-    # result makes assemble() omit the funding section entirely
-    if rd.funding:
-        before = len(rd.funding)
-        rd.funding = clean_funding(rd.funding)
-        if len(rd.funding) != before:
-            log.info("funding cleaned: %d -> %d rounds", before, len(rd.funding))
-        if rd.funding:
-            context = "\n".join(filter(None, [rd.origin_story,
-                                              *[e.event for e in rd.timeline[:6]]]))
-            rd.funding = await verify.semantic_filter_funding(
-                rd.funding, rd.startup_name, context)
 
     # relevance + grounding gates (the key problem)
     if rd.metrics and corpus:
@@ -549,6 +445,6 @@ async def build(rd: ResearchDoc, sources: List[Source]) -> StoryBrief:
 
     sb = assemble(rd, nar, sources, confidence=conf)
     log.info("=== editorial done: slug=%s sections=%s ===", sb.meta.slug,
-             [k for k in ("core_insight", "timeline", "product_loop", "funding",
+             [k for k in ("core_insight", "timeline", "product_loop",
                           "competitors", "founder_mode") if getattr(sb, k)])
     return sb

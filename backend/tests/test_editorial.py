@@ -1,20 +1,11 @@
 from app.agents import editorial
 from app.agents.editorial import _Narratives, _Quadrant, _TimelineN
-from app.schemas import ResearchDoc, FundingRound, Metric, Source, TimelineEvent
+from app.schemas import ResearchDoc, Metric, Source, TimelineEvent
 
 
 def test_slugify():
     assert editorial.slugify("Luma.com") == "luma-com"
     assert editorial.slugify("ShopBack!") == "shopback"
-
-
-def test_funding_chart_normalizes_to_millions_sorted():
-    rd = ResearchDoc(startup_name="Luma", funding=[
-        FundingRound(round="Series A", date="2022", amount_usd=30_000_000),
-        FundingRound(round="Seed", date="2020", amount_usd=3_000_000)])
-    pts = editorial.funding_chart(rd)
-    assert [p.value for p in pts] == [3.0, 30.0]      # sorted by date
-    assert pts[0].unit == "$M"
 
 
 def test_stat_bar_from_metrics_capped_at_4():
@@ -58,100 +49,19 @@ def test_stat_bar_drops_overlong_prose_values():
     assert all(len(v) <= 12 for v in vals)        # prose stat dropped
 
 
-def test_clean_funding_drops_junk_amountless_dedupes_sorts():
-    funding = [
-        FundingRound(round="", date="", amount_usd=None),                       # junk: empty
-        FundingRound(round="Multiple rounds (unspecified)", date="2012-2019",
-                     valuation_usd=550_000_000),                                # junk label
-        FundingRound(round="Grant", date="2012", amount_usd=None),             # no amount
-        FundingRound(round="Series C", date="2017", amount_usd=85_000_000),
-        FundingRound(round="Series C (2017)", date="2017"),                    # dup, no amount
-        FundingRound(round="Seed", date="2013", amount_usd=800_000),
-    ]
-    out = editorial.clean_funding(funding)
-    labels = [f.round for f in out]
-    assert labels == ["Seed", "Series C"]            # junk + amount-less gone, sorted by date
-    assert all(f.amount_usd for f in out)
-
-
-def test_clean_funding_drops_implied_rounds():
-    funding = [
-        FundingRound(round="Series A", date="2015", amount_usd=6_000_000),
-        FundingRound(round="Series B (implied)", date="2017", amount_usd=1_000_000_000),
-    ]
-    out = editorial.clean_funding(funding)
-    assert [f.round for f in out] == ["Series A"]    # inferred round dropped
-
-
-def test_funding_rounds_formats_billions():
-    rd = ResearchDoc(startup_name="X", funding=[
-        FundingRound(round="Series C", date="2017", amount_usd=1_000_000_000,
-                     valuation_usd=31_000_000_000)])
-    rv = editorial.funding_rounds(rd)[0]
-    assert rv.amount == "$1B"
-    assert rv.valuation == "$31B"
-
-
-def test_clean_funding_no_backfill_without_matching_source():
-    # Neither round has a source url, so there is nothing to prove they came
-    # from the same article. Backfill must NOT happen; the amount-less round
-    # is then dropped by the amount-less-drop step, leaving nothing.
-    funding = [
-        FundingRound(round="Series A", date="2014"),                  # no amount
-        FundingRound(round="Series A (2014)", date="2014", amount_usd=7_800_000),
-    ]
-    out = editorial.clean_funding(funding)
-    assert out == []
-
-
-def test_clean_funding_does_not_weld_amount_across_sources():
-    from app.schemas import SourceRef
-    # kept round came from article A with no amount; a DIFFERENT article B reports
-    # an amount for the same (label, year). The foreign amount must NOT be welded on
-    # — that is exactly how Series/year/amount gets scrambled. Round has no amount → dropped.
-    funding = [
-        FundingRound(round="Series D", date="2016", amount_usd=None,
-                     source=SourceRef(url="https://a.com/x")),
-        FundingRound(round="Series D (2016)", date="2016", amount_usd=350_000_000,
-                     source=SourceRef(url="https://b.com/y")),
-    ]
-    assert editorial.clean_funding(funding) == []
-
-
-def test_clean_funding_backfills_within_same_source():
-    from app.schemas import SourceRef
-    funding = [
-        FundingRound(round="Series A", date="2014", amount_usd=None,
-                     source=SourceRef(url="https://x.com/a")),
-        FundingRound(round="Series A (2014)", date="2014", amount_usd=7_800_000,
-                     source=SourceRef(url="https://x.com/a")),
-    ]
-    out = editorial.clean_funding(funding)
-    assert len(out) == 1 and out[0].amount_usd == 7_800_000
-
-
-def test_clean_funding_does_not_weld_investors_across_sources():
-    from app.schemas import SourceRef
-    # kept round has its own amount (so it survives the amount-less drop) and a
-    # source url different from the donor's. The donor's investors must NOT be
-    # welded on, since that is the same foreign-provenance risk as amount/valuation.
-    funding = [
-        FundingRound(round="Series D", date="2016", amount_usd=350_000_000,
-                     investors=[], source=SourceRef(url="https://a.com/x")),
-        FundingRound(round="Series D (2016)", date="2016", investors=["Foo Capital"],
-                     source=SourceRef(url="https://b.com/y")),
-    ]
-    out = editorial.clean_funding(funding)
-    assert len(out) == 1
-    assert not out[0].investors           # foreign investors must not be welded on
-
-
 def test_editorial_prompt_has_insight_rubric_and_lesson_safety():
     s = editorial._SYS.lower()
     assert "non-obvious" in s          # insight rubric
     assert "tautology" in s
     assert "unethical" in s            # lesson safety guardrail
     assert "disowned" in s
+
+
+def test_editorial_prompt_has_founder_narrative_and_closing_rubric():
+    s = editorial._SYS
+    assert "FIRST money" in s          # scrappy pre-VC capital
+    assert "nearly broke them" in s    # early setback / near-failure
+    assert "resonant takeaway" in s    # closing rubric
 
 
 def test_assemble_uses_llm_timeline_events_when_present():
@@ -202,13 +112,12 @@ def test_timeline_items_fallback_prioritizes_and_caps():
 
 
 def test_assemble_omits_unsupported_sections():
-    rd = ResearchDoc(startup_name="Luma")          # no funding/competitors/timeline
+    rd = ResearchDoc(startup_name="Luma")          # no competitors/timeline
     nar = _Narratives(hero_line1="Luma didn't build an event platform.",
                       hero_line2="They built infrastructure for identities.",
                       accent_word_orange="infrastructure")
     sources = [Source(id="s0", url="http://x", title="t")]
     sb = editorial.assemble(rd, nar, sources)
-    assert sb.funding is None
     assert sb.competitors is None
     assert sb.timeline is None
     assert sb.hero.accent_word_orange == "infrastructure"

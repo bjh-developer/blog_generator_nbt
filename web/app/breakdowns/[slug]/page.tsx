@@ -11,7 +11,6 @@ import { Hero } from "@/components/sections/Hero";
 import { CoreInsight } from "@/components/sections/CoreInsight";
 import { Timeline } from "@/components/sections/Timeline";
 import { ProductLoop } from "@/components/sections/ProductLoop";
-import { Funding } from "@/components/sections/Funding";
 import { Competitors } from "@/components/sections/Competitors";
 import { FounderMode } from "@/components/sections/FounderMode";
 import { Lessons } from "@/components/sections/Lessons";
@@ -69,7 +68,6 @@ export default async function BreakdownPage({ params }: { params: Promise<{ slug
   if (story.core_insight) nav.push({ id: "insight", label: "Insight" });
   if (story.timeline) nav.push({ id: "timeline", label: "Timeline" });
   if (story.product_loop) nav.push({ id: "loop", label: "The Loop" });
-  if (story.funding) nav.push({ id: "funding", label: "Funding" });
   if (story.competitors) nav.push({ id: "competitors", label: "Competitors" });
   if (story.founder_mode) nav.push({ id: "founder", label: "Founder" });
   if (story.lessons.length > 0) nav.push({ id: "lessons", label: "Lessons" });
@@ -98,11 +96,6 @@ export default async function BreakdownPage({ params }: { params: Promise<{ slug
       {story.product_loop && (
         <div id="loop" className={anchor}>
           <ProductLoop data={story.product_loop} />
-        </div>
-      )}
-      {story.funding && (
-        <div id="funding" className={anchor}>
-          <Funding data={story.funding} eyebrow="Funding & growth" />
         </div>
       )}
       {story.competitors && (

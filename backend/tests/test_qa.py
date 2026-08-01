@@ -1,6 +1,6 @@
 from app import qa
 from app.schemas import (
-    StoryBrief, StoryMeta, Hero, FundingSection, FundingRoundView, FundingPoint,
+    StoryBrief, StoryMeta, Hero,
     TimelineSection, TimelineItem, CompetitorSection, QuadrantItem,
 )
 
@@ -22,44 +22,6 @@ def _brief(**kw) -> StoryBrief:
 def test_clean_story_has_no_issues():
     errors, warnings = qa.split(qa.audit(_brief()))
     assert errors == [] and warnings == []
-
-
-def test_duplicate_funding_round_is_error():
-    sb = _brief(funding=FundingSection(title="F", rounds=[
-        FundingRoundView(label="First funding round", date="2012", amount="$1.5M"),
-        FundingRoundView(label="First funding round", date="2012", amount="$1.5M"),
-    ], chart=[FundingPoint(label="First funding round", value=1.5)]))
-    errors, _ = qa.split(qa.audit(sb))
-    assert any("duplicate round label" in e for e in errors)
-
-
-def test_out_of_order_funding_is_error():
-    # the image bug: 2011 round listed after 2012
-    sb = _brief(funding=FundingSection(title="F", rounds=[
-        FundingRoundView(label="First funding round", date="2012", amount="$1.5M"),
-        FundingRoundView(label="Early investor support", date="2011"),
-    ], chart=[FundingPoint(label="First funding round", value=1.5)]))
-    errors, _ = qa.split(qa.audit(sb))
-    assert any("out of chronological order" in e for e in errors)
-
-
-def test_round_missing_amount_is_warning_not_error():
-    sb = _brief(funding=FundingSection(title="F", rounds=[
-        FundingRoundView(label="Seed", date="2012", amount="$1.5M"),
-        FundingRoundView(label="Early investor support", date="2013"),
-    ], chart=[FundingPoint(label="Seed", value=1.5)]))
-    errors, warnings = qa.split(qa.audit(sb))
-    assert any("missing an amount" in w for w in warnings)
-    assert not any("missing an amount" in e for e in errors)   # advisory only
-
-
-def test_valuation_drop_is_error():
-    sb = _brief(funding=FundingSection(title="F", rounds=[
-        FundingRoundView(label="Series A", date="2015", valuation="$3.2B"),
-        FundingRoundView(label="Series B", date="2018", valuation="$1B"),
-    ], chart=[]))
-    errors, _ = qa.split(qa.audit(sb))
-    assert any("valuation drops" in e for e in errors)
 
 
 def test_competitor_map_clean_like_the_image():
@@ -122,22 +84,6 @@ def test_timeline_out_of_order_is_error():
 
 # --- auto-repair -----------------------------------------------------------
 
-def test_repair_disambiguates_duplicate_funding_label():
-    # the Carousell bug: two "Series C" in different years
-    sb = _brief(funding=FundingSection(title="F", rounds=[
-        FundingRoundView(label="Series C", date="2017", amount="$20M"),
-        FundingRoundView(label="Series C", date="2019", amount="$80M"),
-    ], chart=[FundingPoint(label="Series C", value=20.0, date="2017"),
-              FundingPoint(label="Series C", value=80.0, date="2019")]))
-    assert qa.split(qa.audit(sb))[0]            # has errors before
-    sb = qa.repair(sb)
-    errors, _ = qa.split(qa.audit(sb))
-    assert errors == []                          # fixed
-    labels = [r.label for r in sb.funding.rounds]
-    assert len(set(labels)) == 2                 # now unique
-    assert set(p.label for p in sb.funding.chart) == set(labels)   # chart synced
-
-
 def test_repair_enforces_single_winner():
     sb = _brief(competitors=_comp([
         QuadrantItem(name="Shopee", quadrant="tr", winner=True),
@@ -163,19 +109,6 @@ def test_repair_caps_competitors_to_four():
     cells = [q.quadrant for q in quads]
     assert len(set(cells)) == len(cells)                          # unique cells
     assert qa.split(qa.audit(sb))[0] == []                        # clean after repair
-
-
-def test_repair_syncs_chart_label_for_same_date_duplicates():
-    sb = _brief(funding=FundingSection(title="F", rounds=[
-        FundingRoundView(label="Series C", date="2017", amount="$20M"),
-        FundingRoundView(label="Series C", date="2017", amount="$80M"),
-    ], chart=[FundingPoint(label="Series C", value=20.0, date="2017"),
-              FundingPoint(label="Series C", value=80.0, date="2017")]))
-    sb = qa.repair(sb)
-    chart_labels = sorted(p.label for p in sb.funding.chart)
-    round_labels = sorted(r.label for r in sb.funding.rounds)
-    assert chart_labels == round_labels          # no collapse to one label
-    assert len(set(chart_labels)) == 2           # both points distinctly labeled
 
 
 def test_repair_normalizes_axis_arrows_to_double():

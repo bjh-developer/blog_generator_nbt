@@ -20,25 +20,24 @@ _SYS = (
     "entrepreneur blog. From the ARTICLE, extract ONLY verifiable, story-defining "
     "facts about the company. Set any field you cannot support to null/empty. "
     "Never invent numbers, names, dates, or quotes.\n\n"
-    "FUNDING — SPAN LOCK: a funding round's `round` (e.g. 'Series C'), `date`, and "
-    "`amount_usd` MUST come from the SAME sentence or quote. `source.quote` MUST literally "
-    "contain that amount. If the label, date, and amount are NOT stated together in one span, "
-    "leave the uncertain field null — NEVER pair a round label with an amount or year found "
-    "elsewhere in the text. A wrong Series↔year↔amount pairing is worse than a null.\n\n"
+    "origin_story must capture how the company ACTUALLY began: the founding moment, "
+    "what the first version of the product was, HOW THEY GOT THEIR FIRST MONEY "
+    "(grant, competition, personal savings, friends/family, a first paying customer — "
+    "include the amount only if the article states it), and any early rejection, "
+    "setback, or near-failure. Never invent any of this; leave null what the article "
+    "does not support.\n\n"
     "Return JSON matching this shape (omit unknowns, keep arrays you cannot fill empty):\n"
     '{"startup_name":"","tagline":null,"pivotal_insight":null,"origin_story":null,'
     '"timeline":[{"date":"YYYY","kind":"founder_story|product|funding|inflection|user_delight",'
     '"event":"","significance":"","source":{"quote":"","url":""}}],'
     '"founders":[{"name":"","role":"","background":"","why":null,"source":{"quote":"","url":""}}],'
-    '"funding":[{"round":"","date":"","amount_usd":null,"valuation_usd":null,"investors":[],'
-    '"source":{"quote":"","url":""}}],'
     '"metrics":[{"label":"","value":"","date":null,"source_url":null}],'
     '"competitors":[{"name":"","positioning":"","strengths":[],"weaknesses":[],"our_advantage":null}],'
     '"product_loop_steps":[],'
     '"lessons":[{"lesson":"","context":"","applicable_to":"","source":{"quote":"","url":""}}]}'
 )
 
-_LIST_KEYS = ["timeline", "founders", "product_evolution", "funding", "metrics",
+_LIST_KEYS = ["timeline", "founders", "product_evolution", "metrics",
               "competitors", "product_loop_steps", "lessons", "sources"]
 _SCALAR_KEYS = ["tagline", "pivotal_insight", "origin_story"]
 
@@ -87,7 +86,7 @@ async def run(sources: list, name: str) -> ResearchDoc:
             jobs.append(_extract_one(text, s.url))
     partials = await asyncio.gather(*jobs) if jobs else []
     doc = _merge(name, partials)
-    log.info("=== research done: %d timeline, %d funding, %d metrics, %d competitors, %d lessons ===",
-             len(doc.timeline), len(doc.funding), len(doc.metrics),
+    log.info("=== research done: %d timeline, %d metrics, %d competitors, %d lessons ===",
+             len(doc.timeline), len(doc.metrics),
              len(doc.competitors), len(doc.lessons))
     return doc

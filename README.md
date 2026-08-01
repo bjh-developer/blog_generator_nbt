@@ -68,7 +68,7 @@ curl localhost:8000/health   # shows whether both keys are detected
 
 ```bash
 cd backend
-python generate.py "Carousell" --max-sources 20
+python generate.py "Carousell" --max-sources 30
 ```
 
 Prints QA warnings/errors and the written JSON path. `--content-dir` overrides
@@ -111,7 +111,7 @@ articles) and writes `<slug>.json` to `CONTENT_DIR`.
   "startup_name": "Carousell",
   "overall_confidence": 0.73,
   "path": ".../web/content/breakdowns/carousell.json",
-  "qa_warnings": ["funding: 1 round(s) missing an amount, ..."]
+  "qa_warnings": ["competitors: missing axis label on axis_y, ..."]
 }
 ```
 
@@ -181,19 +181,20 @@ cd ../web && npm install && npm run dev      # open /breakdowns/notion
 
 ## What you get
 
-Every breakdown shares one template; sections appear only when the research
-supports them:
+Every breakdown shares one template of eight sections; sections appear only when
+the research supports them:
 
 - **Hero** — short catchy headline + a stat bar.
 - **Core insight** — the one non-obvious idea behind the company.
-- **Timeline** — 4–6 key milestones (founding, first product, pivots, funding).
+- **Timeline** — 4–6 key milestones (founding, first product, pivots, funding events).
 - **Product loop** — the growth/network-effect flywheel.
-- **Funding & pricing** — how they got their first money + how the product earns money,
-  with a capital-raised bar chart and round cards.
 - **Competitive map** — a 2×2 positioning matrix (winner top-right).
-- **Founder mode** — founder background and how the company started.
+- **Founder mode** — the emotional heart of the post: what the founders were doing
+  before, the moment the idea landed, the scrappy first version, **how they got their
+  first money** (grant, competition, savings, friends and family, a first paying
+  customer), and what nearly broke them early on.
 - **Lessons** — 3–4 takeaways for builders.
-- **Closing** — the NBT take + a pull quote.
+- **Closing** — the NBT take, one specific takeaway worth remembering, + a pull quote.
 
 Every stat/quote is grounded in a scraped source; low-confidence items are filtered
 or badged. Each page also has a reading-progress bar and a desktop section-nav rail

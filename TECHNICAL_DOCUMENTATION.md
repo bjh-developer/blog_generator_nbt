@@ -69,19 +69,18 @@ Per-source extraction → merged `ResearchDoc`.
   fabricate; null what you can't support" prompt → a partial `ResearchDoc`.
 - All sources run **concurrently** (`asyncio.gather`); the gateway's rate limiter
   still spaces the actual HTTP calls.
-- `_merge` concatenates list fields (timeline, funding, founders, …) and takes the
-  first non-null scalar (tagline, origin_story, …). Merging across sources is why
-  funding lists arrive noisy and duplicated — cleaned later in editorial.
+- `_merge` concatenates list fields (timeline, founders, metrics, …) and takes the
+  first non-null scalar (tagline, origin_story, …). Merging across sources means list
+  fields arrive noisy and duplicated — deduped later in editorial.
+- The prompt asks `origin_story` to capture **how the company got its first money**
+  (grant, competition, savings, friends and family, a first paying customer) plus the
+  early rejections and near-failures. That scrappy-money material is carried as prose,
+  not as a structured round list.
 
 ### 2.3 Editorial — `agents/editorial.py`
 `ResearchDoc` → `StoryBrief`. The heart of the system. Two kinds of work:
 
 **Deterministic, pure, unit-tested helpers** build data-shaped sections:
-- `clean_funding` — drops junk/inferred-label rounds (`unspecified`, `implied`,
-  `estimated`, …) and amount-less rounds, dedupes by (label sans `(YYYY)`, year)
-  with backfill, sorts chronologically.
-- `funding_chart` / `funding_rounds` — chart points + round cards; `_fmt_usd` rolls
-  ≥ $1B into `$X.XB`.
 - `stat_bar` — `normalize_stat_value` maps quantifier words to symbols
   (`over`→`>`), compresses magnitudes (`billion`→`B`) only when digit-attached, then
   drops non-numeric or >12-char prose stats. Max 4.
@@ -93,14 +92,19 @@ Per-source extraction → merged `ResearchDoc`.
 **One constrained LLM call** writes the NBT-voice prose into `_Narratives`
 (`gateway.complete_json`, warm sampling for human cadence). `_Narratives` carries
 the hero, core insight, `timeline_events` (LLM-chosen key milestones), product
-loop, funding/pricing narrative, competitor quadrants, founder mode, lessons,
-closing. A `model_validator` (`_flatten`) tolerates free-model drift: un-nests
-fields the model wrongly nested and drops malformed list entries.
+loop, competitor quadrants, founder mode, lessons, closing — the eight content
+sections of a `StoryBrief`. A `model_validator` (`_flatten`) tolerates free-model
+drift: un-nests fields the model wrongly nested and drops malformed list entries.
+
+Two prompt rubrics carry most of the editorial weight:
+- `founder_mode_narrative` is the emotional heart of the post: what the founders
+  were doing before, the origin moment, the first version of the product, **how they
+  got their first money**, and what nearly broke them early. Explicitly
+  anti-glamorising — no "and then they raised a huge round" arcs.
+- `closing_narrative` must land one specific, resonant takeaway (not a generic
+  sign-off). This is enforced at generation time, not only after the fact.
 
 **Verify gates (run in `build` before the LLM call, via `agents/verify.py`):**
-- `semantic_filter_funding` — an LLM (`role="fast"`) drop-only pass that removes
-  funding rounds that actually belong to other companies, given the startup name +
-  origin/timeline context. Fails open (keeps all) on `LLMError`.
 - `filter_metrics` — grounding gate: keeps only metrics supported by the scraped
   corpus (threshold `VERIFY_THRESHOLD`).
 - `relevance_filter` — drops off-topic lessons; never empties the list.
@@ -117,10 +121,6 @@ Flow: **audit → if errors, `repair(sb)` → re-audit → write if clean, else 
 
 | Check | Severity | Repair |
 |---|---|---|
-| duplicate funding round label | error | disambiguate with year |
-| funding rounds out of chronological order | error | sort |
-| later round valuation < earlier | error | clear bad valuation |
-| round missing amount (absent from chart) | warning | — (advisory) |
 | duplicate competitor label | error | drop dup card |
 | > 4 competitor cards | error | cap to 4 (winners first) |
 | winner ≠ exactly 1 | error | force exactly one |
@@ -180,10 +180,14 @@ model (triage/classify is latency-sensitive).
 - **`LenientModel`** — base class; coerces a `null` sent for a str/list field to
   that field's default, so free-model drift doesn't fail validation.
 - **`ResearchDoc`** — internal, source-attributed research (research agent output):
-  timeline, founders, funding, metrics, competitors, lessons, each with `SourceRef`.
+  timeline, founders, metrics, competitors, lessons, each with `SourceRef`.
 - **`StoryBrief`** — the UI contract (editorial output). Mirror of
-  `web/lib/types.ts`. All sections optional; `overall_confidence` is the mean
-  grounding score of surviving metrics.
+  `web/lib/types.ts`. Eight content sections — hero, core_insight, timeline,
+  product_loop, competitors, founder_mode, lessons, closing. All sections optional;
+  `overall_confidence` is the mean grounding score of surviving metrics.
+- **`TimelineKind`** — `founder_story` / `product` / `funding` / `inflection` /
+  `user_delight`. The `funding` member is a **timeline event category** (a milestone
+  can still be a fundraise); it is unrelated to any structured funding section.
 
 When you change `StoryBrief`, change `web/lib/types.ts` in the same commit.
 
@@ -213,9 +217,9 @@ Zero-infra, all on disk under `backend/data/`:
   tags; the page injects JSON-LD (see SEO/AEO below).
 - `lib/content.ts` — reads `web/content/breakdowns/*.json`.
 - `lib/theme.ts` — brand palette, section color rotation, fonts.
-- `components/sections/*` — one component per `StoryBrief` section. The funding
-  chart (`Funding.tsx`) is a recharts `BarChart` with per-bar value labels and a
-  `minPointSize` so tiny rounds stay visible next to huge ones.
+- `components/sections/*` — one component per `StoryBrief` section (`Hero`,
+  `CoreInsight`, `Timeline`, `ProductLoop`, `Competitors`, `FounderMode`, `Lessons`,
+  `Closing`), plus shared chrome (`PillNav`, `Footer`, `ConfidenceBadge`).
 - `components/ui/Eyebrow.tsx` — shared section kicker (Lucide icon + label); used
   by every section so there are no ad-hoc unicode-glyph "icons".
 
@@ -285,6 +289,6 @@ real deployment origin before building, or canonical tags point at the wrong hos
 ## 9. Tests
 
 `cd backend && python -m pytest -q` — offline (no API keys needed). Covers the
-deterministic editorial helpers (clean_funding, stat_bar, timeline), the QA
+deterministic editorial helpers (stat_bar, timeline), the QA
 audit/repair rules, schema leniency, JSON repair, source normalization, and
 pipeline wiring.
