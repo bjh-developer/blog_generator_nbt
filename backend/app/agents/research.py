@@ -20,20 +20,24 @@ _SYS = (
     "entrepreneur blog. From the ARTICLE, extract ONLY verifiable, story-defining "
     "facts about the company. Set any field you cannot support to null/empty. "
     "Never invent numbers, names, dates, or quotes.\n\n"
+    "origin_story must capture how the company ACTUALLY began: the founding moment, "
+    "what the first version of the product was, HOW THEY GOT THEIR FIRST MONEY "
+    "(grant, competition, personal savings, friends/family, a first paying customer — "
+    "include the amount only if the article states it), and any early rejection, "
+    "setback, or near-failure. Never invent any of this; leave null what the article "
+    "does not support.\n\n"
     "Return JSON matching this shape (omit unknowns, keep arrays you cannot fill empty):\n"
     '{"startup_name":"","tagline":null,"pivotal_insight":null,"origin_story":null,'
     '"timeline":[{"date":"YYYY","kind":"founder_story|product|funding|inflection|user_delight",'
     '"event":"","significance":"","source":{"quote":"","url":""}}],'
     '"founders":[{"name":"","role":"","background":"","why":null,"source":{"quote":"","url":""}}],'
-    '"funding":[{"round":"","date":"","amount_usd":null,"valuation_usd":null,"investors":[],'
-    '"source":{"quote":"","url":""}}],'
     '"metrics":[{"label":"","value":"","date":null,"source_url":null}],'
     '"competitors":[{"name":"","positioning":"","strengths":[],"weaknesses":[],"our_advantage":null}],'
     '"product_loop_steps":[],'
     '"lessons":[{"lesson":"","context":"","applicable_to":"","source":{"quote":"","url":""}}]}'
 )
 
-_LIST_KEYS = ["timeline", "founders", "product_evolution", "funding", "metrics",
+_LIST_KEYS = ["timeline", "founders", "product_evolution", "metrics",
               "competitors", "product_loop_steps", "lessons", "sources"]
 _SCALAR_KEYS = ["tagline", "pivotal_insight", "origin_story"]
 
@@ -43,10 +47,11 @@ async def _extract_one(text: str, url: str) -> dict:
         rd = await gateway.complete_json(
             _SYS, f"SOURCE_URL: {url}\n\nARTICLE:\n{text[:16000]}",
             ResearchDoc, role="general",
-            # Free-form + repair: full-length constrained-JSON decode on Cloudflare
-            # is ~90s/call (13 of these run in parallel) and would time out. The
-            # prompt already specifies the shape; structured=True truncates here.
-            structured=False,
+            # Schema-enforced decode: OpenRouter reasoning models (nemotron) support
+            # json_schema and otherwise free-form ~25% of ResearchDoc extractions
+            # come back as invalid JSON that repair can't recover. (The old
+            # structured=False was a Cloudflare-70b slow-decode workaround, now moot.)
+            structured=True,
         )
         return rd.model_dump()
     except gateway.LLMError as e:
@@ -81,7 +86,7 @@ async def run(sources: list, name: str) -> ResearchDoc:
             jobs.append(_extract_one(text, s.url))
     partials = await asyncio.gather(*jobs) if jobs else []
     doc = _merge(name, partials)
-    log.info("=== research done: %d timeline, %d funding, %d metrics, %d competitors, %d lessons ===",
-             len(doc.timeline), len(doc.funding), len(doc.metrics),
+    log.info("=== research done: %d timeline, %d metrics, %d competitors, %d lessons ===",
+             len(doc.timeline), len(doc.metrics),
              len(doc.competitors), len(doc.lessons))
     return doc

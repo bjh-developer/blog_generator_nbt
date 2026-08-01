@@ -8,8 +8,8 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from app import config, qa
-from app.agents import editorial, research, source
+from app import config, qa, store
+from app.agents import editorial, judge, research, source
 from app.schemas import StoryBrief
 from typing import List, Tuple
 
@@ -47,20 +47,32 @@ async def generate(query: str, max_sources: int = 8) -> Tuple[StoryBrief, List[s
     sb = await editorial.build(rd, sources)
     sb.meta.volume = _next_volume(sb.meta.slug)
 
-    errors, warnings = qa.split(qa.audit(sb))
+    corpus = "\n".join(store.read_cached_text(s.raw_text_ref) for s in sources)
+
+    # QA audit: a final, deterministic consistency pass over the story before
+    # it ships. Runs BEFORE the judge so the judge reviews the repaired story.
+    errors, qa_warnings = qa.split(qa.audit(sb))
     if errors:
         # auto-repair the hard-error classes deterministically, then re-audit
         log.warning("▶ QA found %d error(s), attempting auto-repair: %s", len(errors), errors)
         sb = qa.repair(sb)
-        errors, warnings = qa.split(qa.audit(sb))
+        errors, qa_warnings = qa.split(qa.audit(sb))
         if errors:
             log.error("▶ QA auto-repair INCOMPLETE — %d error(s) remain, not writing "
                       "%s.json: %s", len(errors), sb.meta.slug, errors)
-            return sb, errors, warnings
+            return sb, errors, qa_warnings
         log.info("▶ QA auto-repair succeeded")
 
+    # LLM judge: advisory quality/safety/factuality review (flag-for-human).
+    # Fail-open — never blocks the write. The scraped corpus is the evidence the
+    # judge grounds its factuality checks against.
+    judge_warnings = await judge.review(sb, corpus)
+    if judge_warnings:
+        log.warning("▶ judge flagged %d issue(s): %s", len(judge_warnings), judge_warnings)
+
+    warnings = qa_warnings + judge_warnings
     if warnings:
-        log.warning("▶ QA warnings (advisory, %d): %s", len(warnings), warnings)
+        log.warning("▶ warnings (advisory, %d): %s", len(warnings), warnings)
     log.info("▶ QA audit clean (no errors)")
     write_story(sb)
     log.info("▶ pipeline complete slug=%s confidence=%.2f", sb.meta.slug, sb.overall_confidence)

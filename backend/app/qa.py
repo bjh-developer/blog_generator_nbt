@@ -1,8 +1,9 @@
 """StoryBrief QA audit: a final, deterministic consistency pass over the
 assembled story before it ships. Catches the structural mistakes a language
-model quietly produces — duplicate funding rounds, dates out of order, chart
-points that don't match the round list, contradictory valuations — the kind of
-thing visible in the funding section but invisible to grounding/relevance gates.
+model quietly produces — duplicate or overlapping competitor cards, more than
+one "winner", timeline events out of chronological order, hero accent words that
+don't occur in the headline — the kind of thing visible in the rendered page but
+invisible to the grounding/relevance gates.
 
 Pure and cheap (no LLM). Returns a list of human-readable issue strings; empty
 list == clean. The pipeline logs these and returns them in the API response so a
@@ -19,27 +20,10 @@ from app.schemas import StoryBrief
 Issue = Tuple[str, str]   # (severity, message)
 
 
-def _year(s: str | None) -> str:
-    return (s or "")[:4]
-
-
-def _money_to_float(s: str | None) -> float | None:
-    """'$85M' -> 85e6, '$3.2B' -> 3.2e9. None if unparseable."""
-    if not s:
-        return None
-    m = re.search(r"([\d.]+)\s*([mMbBkK])?", s.replace(",", ""))
-    if not m:
-        return None
-    val = float(m.group(1))
-    mult = {"k": 1e3, "m": 1e6, "b": 1e9}.get((m.group(2) or "").lower(), 1.0)
-    return val * mult
-
-
 def audit(sb: StoryBrief) -> List[Issue]:
     """Return all (severity, message) issues. Use split() to separate gating
     errors from advisory warnings."""
     issues: List[Issue] = []
-    issues += _audit_funding(sb)
     issues += _audit_competitors(sb)
     issues += _audit_timeline(sb)
     issues += _audit_hero(sb)
@@ -59,44 +43,10 @@ def split(issues: List[Issue]) -> Tuple[List[str], List[str]]:
 # reorders, or drops the offending field rather than inventing data.
 
 def repair(sb: StoryBrief) -> StoryBrief:
-    _repair_funding(sb)
     _repair_competitors(sb)
     _repair_timeline(sb)
     _repair_hero(sb)
     return sb
-
-
-def _repair_funding(sb: StoryBrief) -> None:
-    f = sb.funding
-    if not f:
-        return
-    f.rounds.sort(key=lambda r: r.date or "")          # chronological
-
-    # disambiguate duplicate labels (e.g. two "Series C" in different years)
-    counts: dict = {}
-    for r in f.rounds:
-        key = r.label.strip().lower()
-        if counts.get(key):
-            yr = _year(r.date)
-            r.label = f"{r.label} ({yr})" if yr else f"{r.label} ({counts[key] + 1})"
-        counts[key] = counts.get(key, 0) + 1
-    # keep chart point labels in sync with the (possibly renamed) rounds, pairing
-    # by date and consuming each match so same-date duplicates don't collapse to
-    # one label
-    remaining = list(f.rounds)
-    for p in f.chart:
-        match = next((r for r in remaining if r.date == p.date), None)
-        if match:
-            p.label = match.label
-            remaining.remove(match)
-
-    # clear a later valuation that drops below an earlier one (bad parse/units)
-    vals = [r for r in f.rounds if r.valuation and _money_to_float(r.valuation) is not None]
-    for prev, cur in zip(vals, vals[1:]):
-        y1, y2 = _year(prev.date), _year(cur.date)
-        v_prev, v_cur = _money_to_float(prev.valuation), _money_to_float(cur.valuation)
-        if y1 and y2 and y1 <= y2 and v_prev is not None and v_cur is not None and v_cur < v_prev:
-            cur.valuation = None
 
 
 # any arrow form the model emits (→, <->, ↔, doubled, trailing) splits the axis
@@ -191,44 +141,6 @@ def _repair_hero(sb: StoryBrief) -> None:
 
 
 # --- audit -----------------------------------------------------------------
-
-def _audit_funding(sb: StoryBrief) -> List[Issue]:
-    out: List[Issue] = []
-    if not sb.funding:
-        return out
-    rounds = sb.funding.rounds
-
-    # duplicate round labels (the "First funding round x2" bug) — hard
-    labels = [r.label.strip().lower() for r in rounds if r.label]
-    dups = sorted({l for l in labels if labels.count(l) > 1})
-    for d in dups:
-        out.append(("error", f"funding: duplicate round label '{d}' appears "
-                             f"{labels.count(d)}x"))
-
-    # chronology: rounds, as listed, should be non-decreasing by year — hard
-    dated = [(r.label, _year(r.date)) for r in rounds if _year(r.date)]
-    years = [y for _, y in dated]
-    if years != sorted(years):
-        out.append(("error", f"funding: rounds out of chronological order: "
-                             f"{[f'{lbl} {y}' for lbl, y in dated]}"))
-
-    # rounds with no amount are absent from the chart — advisory (a round may
-    # legitimately have no disclosed amount)
-    no_amount = [r.label for r in rounds if not r.amount]
-    if no_amount and len(sb.funding.chart) < len(rounds):
-        out.append(("warning", f"funding: {len(no_amount)} round(s) missing an "
-                               f"amount, so absent from the chart: {no_amount}"))
-
-    # later round valued below an earlier round (usually a parse/units mistake) — hard
-    vals = [(r.label, _year(r.date), _money_to_float(r.valuation))
-            for r in rounds if r.valuation]
-    vals = [v for v in vals if v[2] is not None]
-    for (l1, y1, v1), (l2, y2, v2) in zip(vals, vals[1:]):
-        if y1 and y2 and y1 <= y2 and v1 is not None and v2 is not None and v2 < v1:
-            out.append(("error", f"funding: valuation drops {l1} ({y1}) ${v1:,.0f} "
-                                 f"-> {l2} ({y2}) ${v2:,.0f} — verify units/order"))
-    return out
-
 
 def _audit_competitors(sb: StoryBrief) -> List[Issue]:
     out: List[Issue] = []

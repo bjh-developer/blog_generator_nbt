@@ -66,15 +66,6 @@ class Founder(LenientModel):
     source: SourceRef = Field(default_factory=SourceRef)
 
 
-class FundingRound(LenientModel):
-    round: str
-    date: str = ""
-    amount_usd: Optional[float] = None
-    valuation_usd: Optional[float] = None
-    investors: List[str] = Field(default_factory=list)
-    source: SourceRef = Field(default_factory=SourceRef)
-
-
 class Metric(LenientModel):
     label: str
     value: str
@@ -105,7 +96,6 @@ class ResearchDoc(LenientModel):
     timeline: List[TimelineEvent] = Field(default_factory=list)
     founders: List[Founder] = Field(default_factory=list)
     product_evolution: List[TimelineEvent] = Field(default_factory=list)
-    funding: List[FundingRound] = Field(default_factory=list)
     metrics: List[Metric] = Field(default_factory=list)
     competitors: List[Competitor] = Field(default_factory=list)
     product_loop_steps: List[str] = Field(default_factory=list)
@@ -168,29 +158,6 @@ class ProductLoop(LenientModel):
     caption: str = ""
 
 
-class FundingPoint(LenientModel):
-    label: str
-    value: float
-    unit: Optional[str] = None
-    date: Optional[str] = None
-
-
-class FundingRoundView(LenientModel):
-    label: str
-    date: str = ""
-    amount: Optional[str] = None
-    valuation: Optional[str] = None
-    signal: str = ""
-
-
-class FundingSection(LenientModel):
-    title: str
-    narrative: str = ""
-    rounds: List[FundingRoundView] = Field(default_factory=list)
-    chart: List[FundingPoint] = Field(default_factory=list)
-    pricing_note: Optional[str] = None
-
-
 class QuadrantItem(LenientModel):
     name: str
     their_bet: str = ""
@@ -238,7 +205,6 @@ class StoryBrief(LenientModel):
     core_insight: Optional[CoreInsight] = None
     timeline: Optional[TimelineSection] = None
     product_loop: Optional[ProductLoop] = None
-    funding: Optional[FundingSection] = None
     competitors: Optional[CompetitorSection] = None
     founder_mode: Optional[FounderMode] = None
     lessons: List[LessonCard] = Field(default_factory=list)
