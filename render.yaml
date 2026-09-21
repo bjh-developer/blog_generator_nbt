@@ -1,0 +1,31 @@
+# Render Blueprint for the generator API (free tier).
+# Note: free web services spin down after ~15 min idle (30–60s cold start) and
+# free Postgres is time-limited — the DB lives on Supabase, not here.
+services:
+  - type: web
+    name: nbt-generator
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: GENERATOR_SHARED_SECRET
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: FIRECRAWL_API_KEY
+        sync: false
+      - key: MODEL_FAST
+        sync: false
+      - key: MODEL_GENERAL
+        sync: false
+      - key: MODEL_EDITORIAL
+        sync: false
+      - key: MODEL_FALLBACK
+        sync: false
+      - key: MODEL_JUDGE
+        sync: false
+      - key: LLM_RPM
+        value: "18"

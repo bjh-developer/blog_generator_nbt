@@ -55,6 +55,21 @@ PROMPT_CACHE = os.getenv("PROMPT_CACHE", "1") == "1"
 # .env if switching to a model that rejects structured outputs.
 LLM_JSON_SCHEMA = os.getenv("LLM_JSON_SCHEMA", "1") == "1"
 
+# --- API / webhook ---------------------------------------------------------
+# Bearer token shared with the NextBigThing admin: guards POST /generate and is
+# sent back on the completion callback. Empty in local dev.
+GENERATOR_SHARED_SECRET = os.getenv("GENERATOR_SHARED_SECRET", "")
+
+# SSRF guard for the completion callback: the only hosts we'll POST the result
+# (and the bearer secret) to. Comma-separated hostnames, e.g.
+# "nextbigthingsg.com,localhost". REQUIRED whenever GENERATOR_SHARED_SECRET is
+# set — otherwise a caller-supplied callback_url could exfiltrate the secret.
+CALLBACK_ALLOWLIST = {
+    h.strip().lower()
+    for h in os.getenv("GENERATOR_CALLBACK_ALLOWLIST", "").split(",")
+    if h.strip()
+}
+
 # --- search / scrape -------------------------------------------------------
 FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY", "")    # primary discovery + scrape
 FIRECRAWL_SEARCH_API = "https://api.firecrawl.dev/v2/search"

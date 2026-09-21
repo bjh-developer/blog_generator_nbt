@@ -105,6 +105,16 @@ class ResearchDoc(LenientModel):
 
 # --- StoryBrief (drives UI) ------------------------------------------------
 
+StoryStatus = Literal["draft", "approved"]
+
+
+class StoryImage(LenientModel):
+    src: str
+    alt: str
+    position: Optional[str] = None
+    caption: Optional[str] = None
+
+
 class StoryMeta(LenientModel):
     startup_name: str
     slug: str
@@ -199,12 +209,47 @@ class Closing(LenientModel):
     attribution: Optional[str] = None
 
 
+# Funding section — models exist so emitted JSON validates against the site's
+# types.ts. The editorial assembler does not populate funding in Phase 1
+# (emits None); admins add funding by hand in the editor. LLM-authored funding
+# is a Phase 2 item.
+class FundingPoint(LenientModel):
+    label: str
+    value: float = 0.0
+    unit: Optional[str] = None
+    date: Optional[str] = None
+
+
+class FundingRoundView(LenientModel):
+    label: str
+    date: str = ""
+    amount: Optional[str] = None
+    valuation: Optional[str] = None
+    signal: str = ""
+    source: Optional[SourceRef] = None
+
+
+class FundingSection(LenientModel):
+    title: str
+    narrative: str = ""
+    rounds: List[FundingRoundView] = Field(default_factory=list)
+    chart: List[FundingPoint] = Field(default_factory=list)
+    chart_title: Optional[str] = None
+    pricing_title: Optional[str] = None
+    pricing_note: Optional[str] = None
+
+
 class StoryBrief(LenientModel):
+    # Generation always yields a draft; approval happens only in the admin.
+    status: StoryStatus = "draft"
+    footer_note: Optional[str] = None
+    main_image: Optional[StoryImage] = None
     meta: StoryMeta
     hero: Hero
     core_insight: Optional[CoreInsight] = None
     timeline: Optional[TimelineSection] = None
     product_loop: Optional[ProductLoop] = None
+    funding: Optional[FundingSection] = None
     competitors: Optional[CompetitorSection] = None
     founder_mode: Optional[FounderMode] = None
     lessons: List[LessonCard] = Field(default_factory=list)
@@ -218,3 +263,7 @@ class StoryBrief(LenientModel):
 class GenerateRequest(LenientModel):
     query: str = Field(..., min_length=2)
     max_sources: int = 8
+    # Async webhook mode (admin dashboard): when callback_url is set, /generate
+    # returns 202 immediately and POSTs the result to callback_url when done.
+    job_id: Optional[str] = None
+    callback_url: Optional[str] = None
