@@ -24,6 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from . import config, pipeline
+from .llm.preflight import check_models, summarize_fatal
 from .logging_config import setup as _setup_logging
 from .schemas import GenerateRequest
 
@@ -106,6 +107,20 @@ async def _post_callback(url: str, payload: dict) -> None:
 
 async def _run_and_callback(query: str, max_sources: int, job_id: str, callback_url: str) -> None:
     try:
+        # Preflight: fail fast (with a clear reason) if an essential model id is
+        # retired/unauthorized, instead of burning ~5 min into an empty shell.
+        health = await check_models()
+        if not health["ok"]:
+            await _post_callback(
+                callback_url,
+                {
+                    "job_id": job_id,
+                    "ok": False,
+                    "error": summarize_fatal(health),
+                    "model_health": health["models"],
+                },
+            )
+            return
         sb, errors, warnings = await pipeline.generate(query, max_sources=max_sources)
         if errors:
             await _post_callback(
@@ -148,6 +163,13 @@ def health() -> dict:
         "auth_required": bool(config.GENERATOR_SHARED_SECRET),
         "content_dir": str(config.CONTENT_DIR),
     }
+
+
+@app.get("/models/health")
+async def models_health(_: None = Depends(require_token)) -> dict:
+    """Ping every configured model so the admin can see which are up before
+    starting a run. `ok=false` means an essential model is fatally broken."""
+    return await check_models()
 
 
 @app.post("/generate")

@@ -30,7 +30,12 @@ def env(monkeypatch):
     async def fake_cb(url, payload):
         captured.append((url, payload))
 
+    # Default: models healthy, so the preflight gate lets the run proceed.
+    async def healthy():
+        return {"ok": True, "all_ok": True, "models": [], "essential_fatal": []}
+
     monkeypatch.setattr(main, "_post_callback", fake_cb)
+    monkeypatch.setattr(main, "check_models", healthy)
     return captured
 
 
@@ -106,6 +111,34 @@ def test_sync_mode_returns_brief(env, monkeypatch):
     body = r.json()
     assert body["slug"] == "acme"
     assert body["brief"]["status"] == "draft"
+
+
+def test_preflight_gate_blocks_on_fatal_model(env, monkeypatch):
+    # Essential model fatally broken -> pipeline never runs, callback explains why.
+    async def unhealthy():
+        return {
+            "ok": False,
+            "all_ok": False,
+            "models": [{"model": "dead:free", "roles": ["fast"], "ok": False, "fatal": True, "status": 404, "hint": "retired"}],
+            "essential_fatal": [{"model": "dead:free", "roles": ["fast"], "ok": False, "fatal": True, "status": 404, "hint": "retired"}],
+        }
+    monkeypatch.setattr(main, "check_models", unhealthy)
+
+    ran = {"pipeline": False}
+
+    async def should_not_run(query, max_sources=8):
+        ran["pipeline"] = True
+        return _brief(True), [], []
+    monkeypatch.setattr(main.pipeline, "generate", should_not_run)
+
+    c = TestClient(main.app)
+    r = c.post("/generate", headers=AUTH, json={"query": "Acme", "job_id": "j5", "callback_url": CB})
+    assert r.status_code == 202
+    assert ran["pipeline"] is False  # gate short-circuited before the ~5-min run
+    _, payload = env[0]
+    assert payload["ok"] is False
+    assert "preflight failed" in payload["error"].lower()
+    assert payload["model_health"]
 
 
 def test_health(env):
