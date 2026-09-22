@@ -74,6 +74,12 @@ async def generate(query: str, max_sources: int = 8) -> Tuple[StoryBrief, List[s
     if warnings:
         log.warning("▶ warnings (advisory, %d): %s", len(warnings), warnings)
     log.info("▶ QA audit clean (no errors)")
-    write_story(sb)
+    # The local JSON file is only used by the CLI / local preview. In webhook
+    # mode the brief is returned to the caller, so a disk-write failure (e.g. a
+    # read-only or ephemeral FS on the host) must NOT discard a finished story.
+    try:
+        write_story(sb)
+    except Exception as e:  # noqa: BLE001
+        log.warning("▶ write_story failed (non-fatal, brief still returned): %s", e)
     log.info("▶ pipeline complete slug=%s confidence=%.2f", sb.meta.slug, sb.overall_confidence)
     return sb, errors, warnings

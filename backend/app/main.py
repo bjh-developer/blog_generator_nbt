@@ -100,7 +100,11 @@ async def _post_callback(url: str, payload: dict) -> None:
         headers["authorization"] = f"Bearer {config.GENERATOR_SHARED_SECRET}"
     try:
         async with httpx.AsyncClient(timeout=30, follow_redirects=False) as client:
-            await client.post(url, json=payload, headers=headers)
+            r = await client.post(url, json=payload, headers=headers)
+        if r.status_code >= 300:
+            # e.g. 404 = the site at NEXT_PUBLIC_SITE_URL isn't running the webhook
+            # route yet (not deployed). The job then stays 'running' until swept.
+            log.error("callback POST to %s returned %s: %s", url, r.status_code, r.text[:200])
     except Exception as e:  # noqa: BLE001 - callback failure must not crash the worker
         log.error("callback POST to %s failed: %s", url, e)
 
